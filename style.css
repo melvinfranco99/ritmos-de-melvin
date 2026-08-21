@@ -107,7 +107,43 @@ main#app {
 .level-label { font-weight: 700; }
 .level-resumen { font-size: 0.85rem; color: var(--text-soft); }
 
-/* --- Pantalla de nivel --- */
+/* --- Pantalla de lista de ejercicios --- */
+
+.exercise-list-view { --lvl-color: #6c4cd6; }
+
+.exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.exercise-card {
+  --lvl-color: #6c4cd6;
+  border: none;
+  border-radius: 14px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-left: 5px solid var(--lvl-color);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  color: var(--text);
+}
+
+.exercise-card:hover, .exercise-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(60, 40, 120, 0.18);
+}
+
+.exercise-num { font-size: 1.5rem; font-weight: 800; color: var(--lvl-color); }
+.exercise-title { font-weight: 700; font-size: 0.92rem; }
+.exercise-meta { font-size: 0.78rem; color: var(--text-soft); }
+
+/* --- Pantalla de un ejercicio --- */
 
 .level-view { --lvl-color: #6c4cd6; }
 
@@ -192,16 +228,23 @@ main#app {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 16px 18px;
+  max-width: 1040px;
+  margin: 0 auto;
+  overflow-x: auto;
+}
+
+.staff-grid {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 10px 24px;
-  max-width: 1040px;
-  margin: 0 auto;
 }
 
-.measure-row { flex: 0 1 auto; min-width: 0; max-width: 100%; }
-.measure-svg { display: block; max-width: 100%; height: auto; }
+/* Tamano fijo: todos los pentagramas se ven igual de grandes sin importar el
+   compas. Si un compas es mas ancho que la pantalla, se puede desplazar en
+   horizontal (staff-container) en vez de encogerse de forma distinta a los demas. */
+.measure-row { flex: 0 0 auto; }
+.measure-svg { display: block; }
 
 .staff-line { stroke: var(--text); stroke-width: 1.6; opacity: 0.55; }
 .barline { stroke: var(--text); stroke-width: 2; opacity: 0.7; }

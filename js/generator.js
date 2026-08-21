@@ -1,6 +1,6 @@
-// Generador determinista de ejercicios para los niveles avanzados (8, 9 y 10).
-// Con la misma seed siempre produce el mismo resultado, para que la web sea
-// estable entre visitas y se pueda validar (los compases siempre cuadran).
+// Generador determinista de ejercicios. Con la misma seed siempre produce el
+// mismo resultado, para que la web sea estable entre visitas y se pueda
+// validar (los compases siempre cuadran con su indicador de compas).
 import { W, H, Q, E, S, F, rQ, rE, beam, trH, trQ, trE, trS, EIGHT_GROUPING } from './notes.js';
 
 function mulberry32(seed) {
@@ -27,78 +27,89 @@ function cell(factory, tags = []) {
   return { factory, tags };
 }
 
+// Filtra un catalogo de celdas dejando solo las que el nivel tiene desbloqueadas
+function unlock(pool, allowed) {
+  return pool.filter(e => e.tags.every(t => allowed.has(t)));
+}
+
 function pickCell(rng, pool, boosts) {
+  if (pool.length === 0) throw new Error('generateExercises: no hay celdas desbloqueadas para este hueco (revisa allowedTags)');
   const weights = pool.map(e => e.tags.reduce((w, t) => w * (boosts[t] || 1), 1));
   const entry = pickWeighted(rng, pool, weights);
   return entry.factory();
 }
 
-// --- Celdas de 1 tiempo (grid de negra), usadas en compases simples y como
-// "corcheas cortas" (grupos de 2) dentro de compases compuestos ---
+// --- Celdas de 1 tiempo (grid de negra) ---
 const CELLS_1 = [
   cell(() => [Q()]),
   cell(() => [rQ()]),
-  cell(() => [beam(E(), E())]),
-  cell(() => [beam(E(), rE())]),
-  cell(() => [beam(rE(), E())]),
-  cell(() => [beam(S(), S(), S(), S())]),
-  cell(() => [beam(E(), S(), S())]),
-  cell(() => [beam(S(), S(), E())]),
-  cell(() => [beam(E(true), S())]),
-  cell(() => [beam(S(), E(true))]),
+  cell(() => [beam(E(), E())], ['eighth']),
+  cell(() => [beam(E(), rE())], ['eighth']),
+  cell(() => [beam(rE(), E())], ['eighth']),
+  cell(() => [beam(S(), S(), S(), S())], ['sixteenth']),
+  cell(() => [beam(E(), S(), S())], ['mixedEighthSixteenth']),
+  cell(() => [beam(S(), S(), E())], ['mixedEighthSixteenth']),
+  cell(() => [beam(E(true), S())], ['dottedEighth']),
+  cell(() => [beam(S(), E(true))], ['dottedEighth']),
   cell(() => [beam(F(), F(), F(), F(), F(), F(), F(), F())], ['fusa']),
-  cell(() => [trE()], ['triplet']),
-  cell(() => [trE(['note', 'note', 'rest'])], ['triplet']),
-  cell(() => [trE(['note', 'rest', 'note'])], ['triplet']),
-  cell(() => [trS(), trS()], ['triplet']),
-  cell(() => [trS(), E()], ['triplet']),
-  cell(() => [E(), trS()], ['triplet'])
+  cell(() => [trE()], ['tripletQE']),
+  cell(() => [trE(['note', 'note', 'rest'])], ['tripletQE']),
+  cell(() => [trE(['note', 'rest', 'note'])], ['tripletQE']),
+  cell(() => [trS(), trS()], ['tripletS']),
+  cell(() => [trS(), E()], ['tripletS']),
+  cell(() => [E(), trS()], ['tripletS'])
 ];
 
-// --- Celdas de 1.5 tiempos (corchea con puntillo = grupo de 3 corcheas),
-// el "tiempo" natural de los compases compuestos (6/8, 7/8, 5/8) ---
+// --- Celdas de 1.5 tiempos: el "tiempo" natural de los compases compuestos ---
 const CELLS_1_5 = [
-  cell(() => [beam(E(), E(), E())]),
-  cell(() => [Q(true)]),
-  cell(() => [beam(S(), S(), S(), S()), E()]),
-  cell(() => [E(), beam(S(), S(), S(), S())]),
-  cell(() => [rE(), beam(E(), E())]),
-  cell(() => [beam(E(), E()), rE()]),
+  cell(() => [beam(E(), E(), E())], ['eighth']),
+  cell(() => [Q(true)], ['dotted']),
+  cell(() => [beam(S(), S(), S(), S()), E()], ['sixteenth']),
+  cell(() => [E(), beam(S(), S(), S(), S())], ['sixteenth']),
+  cell(() => [rE(), beam(E(), E())], ['eighth']),
+  cell(() => [beam(E(), E()), rE()], ['eighth']),
   cell(() => [beam(F(), F(), F(), F(), F(), F(), F(), F()), E()], ['fusa']),
-  cell(() => [trS(), trS(), trS()], ['triplet']),
-  cell(() => [trE(), E()], ['triplet']),
-  cell(() => [E(), trE()], ['triplet'])
+  cell(() => [trS(), trS(), trS()], ['tripletS']),
+  cell(() => [trE(), E()], ['tripletQE']),
+  cell(() => [E(), trE()], ['tripletQE'])
 ];
 
-// --- Celdas "anchas" para compases simples (2, 3 y 4 tiempos) ---
+// --- Celdas anchas (2, 3 y 4 tiempos) para compases simples ---
 const CELLS_2 = [
   cell(() => [H()]),
-  cell(() => [Q(true), E()]),
-  cell(() => [E(), Q(true)]),
-  cell(() => [trQ()], ['triplet'])
+  cell(() => [Q(true), E()], ['dotted']),
+  cell(() => [E(), Q(true)], ['dotted']),
+  cell(() => [trQ()], ['tripletQE'])
 ];
 const CELLS_3 = [
-  cell(() => [H(true)]),
-  cell(() => [Q(), Q(true), E()]),
-  cell(() => [Q(true), E(), Q()])
+  cell(() => [H(true)], ['dotted']),
+  cell(() => [Q(), Q(true), E()], ['dotted']),
+  cell(() => [Q(true), E(), Q()], ['dotted'])
 ];
 const CELLS_4 = [
   cell(() => [W()]),
-  cell(() => [trH()], ['triplet'])
+  cell(() => [trH()], ['tripletH'])
 ];
 
-function partitionSimple(rng, total) {
+// Solo se puede elegir una unidad "ancha" (2, 3 o 4 tiempos) si el nivel tiene
+// desbloqueada al menos una celda para ese tamaño (p.ej. el compas de 3 tiempos
+// solo existe con puntillo). Size 1 y 2 y 4 siempre tienen una opcion base
+// (negra, blanca, redonda), asi que nunca quedan sin opciones.
+function partitionSimple(rng, total, wideBias, allowed) {
+  const has3 = unlock(CELLS_3, allowed).length > 0;
   const units = [];
   let remaining = total;
   let first = true;
   while (remaining > 0) {
     let size;
-    if (first && remaining === 4 && rng() < 0.06) {
+    if (first && remaining === 4 && rng() < 0.05 * wideBias) {
       size = 4;
     } else {
       const r = rng();
-      if (remaining >= 3 && r < 0.12) size = 3;
-      else if (remaining >= 2 && r < 0.42) size = 2;
+      const p3 = remaining >= 3 && has3 ? 0.1 * wideBias : 0;
+      const p2 = remaining >= 2 ? 0.28 * wideBias : 0;
+      if (r < p3) size = 3;
+      else if (r < p3 + p2) size = 2;
       else size = 1;
     }
     if (size > remaining) size = remaining;
@@ -109,23 +120,24 @@ function partitionSimple(rng, total) {
   return units;
 }
 
-function poolForUnit(size) {
-  return size === 1 ? CELLS_1 : size === 2 ? CELLS_2 : size === 3 ? CELLS_3 : CELLS_4;
+function poolForUnit(size, allowed) {
+  const pool = size === 1 ? CELLS_1 : size === 2 ? CELLS_2 : size === 3 ? CELLS_3 : CELLS_4;
+  return unlock(pool, allowed);
 }
 
-function genContent(rng, [num, den], boosts) {
+function genContent(rng, [num, den], allowedSet, boosts, wideBias) {
   if (den === 8) {
     const groups = EIGHT_GROUPING[num] || Array(Math.round(num / 2)).fill(2);
     let content = [];
     groups.forEach(g => {
-      const pool = g === 3 ? CELLS_1_5 : CELLS_1;
+      const pool = unlock(g === 3 ? CELLS_1_5 : CELLS_1, allowedSet);
       content = content.concat(pickCell(rng, pool, boosts));
     });
     return content;
   }
   let content = [];
-  partitionSimple(rng, num).forEach(size => {
-    content = content.concat(pickCell(rng, poolForUnit(size), boosts));
+  partitionSimple(rng, num, wideBias, allowedSet).forEach(size => {
+    content = content.concat(pickCell(rng, poolForUnit(size, allowedSet), boosts));
   });
   return content;
 }
@@ -140,26 +152,41 @@ function fingerprint(content) {
 }
 
 /**
- * Genera `count` ejercicios distintos combinando los compases indicados en
- * `meters` (cada uno con su peso) y las figuras disponibles, incluyendo
- * tresillos y fusas segun `boosts`. El resultado es siempre el mismo para la
- * misma `seed`.
+ * Genera `count` ejercicios independientes, cada uno con `measuresPerExercise`
+ * compases (por defecto 25). Salvo que `mixedSig` sea true, cada ejercicio
+ * mantiene un unico compas del principio al final (uno en 4/4, otro en 7/8...).
+ * `allowedTags` controla que figuras estan desbloqueadas en el nivel.
  */
-export function generateLevel({ seed, count, meters, boosts = {} }) {
+export function generateExercises({
+  seed, count, measuresPerExercise = 25, meters, allowedTags = [], boosts = {},
+  wideBias = 0.4, mixedSig = false
+}) {
   const rng = mulberry32(seed);
+  const allowedSet = new Set(allowedTags);
   const sigs = meters.map(m => m.sig);
   const weights = meters.map(m => m.w);
-  const seen = new Set();
-  const results = [];
-  let guard = 0;
-  while (results.length < count && guard < count * 40) {
-    guard++;
-    const sig = pickWeighted(rng, sigs, weights);
-    const content = genContent(rng, sig, boosts);
-    const key = `${sig.join('/')}::${fingerprint(content)}`;
-    if (seen.has(key) && guard < count * 30) continue;
-    seen.add(key);
-    results.push({ sig, content });
+  const exercises = [];
+
+  for (let e = 0; e < count; e++) {
+    const exerciseSig = pickWeighted(rng, sigs, weights);
+    const measures = [];
+    const seen = new Set(); // evita repetir el mismo compas dentro de un ejercicio
+    let guard = 0;
+    while (measures.length < measuresPerExercise && guard < measuresPerExercise * 40) {
+      guard++;
+      const sig = mixedSig ? pickWeighted(rng, sigs, weights) : exerciseSig;
+      const content = genContent(rng, sig, allowedSet, boosts, wideBias);
+      const key = `${sig.join('/')}::${fingerprint(content)}`;
+      if (seen.has(key) && guard < measuresPerExercise * 30) continue;
+      seen.add(key);
+      measures.push({ sig, content });
+    }
+    exercises.push({
+      title: `Ejercicio ${e + 1}`,
+      sig: mixedSig ? null : exerciseSig,
+      measures
+    });
   }
-  return results;
+
+  return exercises;
 }

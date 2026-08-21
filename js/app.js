@@ -1,6 +1,6 @@
 import { LEVELS } from './levels.js';
 import { NOTE, REST } from './notes.js';
-import { renderLevel, renderGlyph } from './notation.js';
+import { renderExercise, renderGlyph } from './notation.js';
 import { Player } from './audio.js';
 
 const app = document.getElementById('app');
@@ -14,6 +14,14 @@ const LEGEND = [
 
 function go(hash) {
   window.location.hash = hash;
+}
+
+function sigLabel(sig) {
+  return sig ? `${sig[0]}/${sig[1]}` : 'Mixto';
+}
+
+function findLevel(id) {
+  return LEVELS.find(l => l.id === id);
 }
 
 function renderHome() {
@@ -52,10 +60,46 @@ function buildLegend(container) {
   });
 }
 
-function renderLevelView(id) {
+function renderExerciseListView(levelId) {
   player.stop();
-  const lvl = LEVELS.find(l => l.id === id);
+  const lvl = findLevel(levelId);
   if (!lvl) { go('#/'); return; }
+
+  app.innerHTML = '';
+  const view = document.createElement('div');
+  view.className = 'exercise-list-view';
+  view.style.setProperty('--lvl-color', lvl.color);
+  view.innerHTML = `
+    <div class="level-toolbar">
+      <button class="btn btn-back" id="btn-back">&larr; Niveles</button>
+      <h2>Nivel ${lvl.id} <span class="level-toolbar-resumen">${lvl.resumen}</span></h2>
+    </div>
+    <div class="exercise-grid" id="exercise-grid"></div>
+  `;
+  app.appendChild(view);
+
+  document.getElementById('btn-back').addEventListener('click', () => go('#/'));
+
+  const grid = document.getElementById('exercise-grid');
+  lvl.exercises.forEach((ex, i) => {
+    const card = document.createElement('button');
+    card.className = 'exercise-card';
+    card.innerHTML = `
+      <span class="exercise-num">${i + 1}</span>
+      <span class="exercise-title">${ex.title}</span>
+      <span class="exercise-meta">${sigLabel(ex.sig)} · ${ex.measures.length} compases</span>
+    `;
+    card.addEventListener('click', () => go(`#/nivel/${lvl.id}/ejercicio/${i + 1}`));
+    grid.appendChild(card);
+  });
+}
+
+function renderExerciseView(levelId, exerciseNum) {
+  player.stop();
+  const lvl = findLevel(levelId);
+  const exIndex = exerciseNum - 1;
+  const exercise = lvl && lvl.exercises[exIndex];
+  if (!lvl || !exercise) { go(`#/nivel/${levelId}`); return; }
 
   app.innerHTML = '';
   const view = document.createElement('div');
@@ -63,8 +107,8 @@ function renderLevelView(id) {
   view.style.setProperty('--lvl-color', lvl.color);
   view.innerHTML = `
     <div class="level-toolbar">
-      <button class="btn btn-back" id="btn-back">&larr; Niveles</button>
-      <h2>Nivel ${lvl.id} <span class="level-toolbar-resumen">${lvl.resumen}</span></h2>
+      <button class="btn btn-back" id="btn-back">&larr; Ejercicios</button>
+      <h2>Nivel ${lvl.id} <span class="level-toolbar-resumen">${exercise.title} · ${sigLabel(exercise.sig)}</span></h2>
     </div>
 
     <div class="controls">
@@ -83,16 +127,16 @@ function renderLevelView(id) {
       <div class="count-in" id="count-in" aria-live="polite"></div>
     </div>
 
-    <div class="staff-container" id="staff"></div>
+    <div class="staff-container" id="staff"><div class="staff-grid" id="staff-grid"></div></div>
 
     <div class="legend" id="legend"></div>
   `;
   app.appendChild(view);
 
-  document.getElementById('btn-back').addEventListener('click', () => go('#/'));
+  document.getElementById('btn-back').addEventListener('click', () => go(`#/nivel/${lvl.id}`));
 
-  const staff = document.getElementById('staff');
-  const { events, totalBeats, clickBeats } = renderLevel(staff, lvl.measures);
+  const staffGrid = document.getElementById('staff-grid');
+  const { events, totalBeats, clickBeats } = renderExercise(staffGrid, exercise.measures);
 
   buildLegend(document.getElementById('legend'));
 
@@ -147,9 +191,12 @@ function renderLevelView(id) {
 
 function route() {
   const hash = window.location.hash;
-  const m = hash.match(/^#\/nivel\/(\d+)/);
-  if (m) {
-    renderLevelView(Number(m[1]));
+  const exerciseMatch = hash.match(/^#\/nivel\/(\d+)\/ejercicio\/(\d+)/);
+  const levelMatch = hash.match(/^#\/nivel\/(\d+)/);
+  if (exerciseMatch) {
+    renderExerciseView(Number(exerciseMatch[1]), Number(exerciseMatch[2]));
+  } else if (levelMatch) {
+    renderExerciseListView(Number(levelMatch[1]));
   } else {
     player.stop();
     renderHome();

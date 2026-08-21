@@ -264,11 +264,12 @@ export function renderGlyph(svg, token) {
 }
 
 /**
- * Renderiza un nivel completo (varios compases). Devuelve la lista global de
- * eventos con su tiempo absoluto en beats (para el resaltado) y los pulsos de
- * metronomo de cada compas (para acentuar el primer tiempo de cada uno).
+ * Renderiza un ejercicio completo (sus compases, uno debajo/al lado de otro).
+ * Devuelve la lista global de eventos con su tiempo absoluto en beats (para
+ * el resaltado) y los pulsos de metronomo de cada compas (para acentuar el
+ * primer tiempo de cada uno).
  */
-export function renderLevel(container, measures) {
+export function renderExercise(container, measures) {
   container.innerHTML = '';
   const allEvents = [];
   const clickBeats = [];

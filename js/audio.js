@@ -1,4 +1,5 @@
-// Motor de audio: caja (snare) sintetizada + metronomo + reproduccion de un nivel completo.
+// Motor de audio: instrumentos de percusion sintetizados (caja, bombo,
+// hi-hat/ride, toms, crash) + metronomo + reproduccion de un ejercicio.
 
 let ctx = null;
 let master = null;
@@ -17,7 +18,7 @@ let noiseBuffer = null;
 function getNoiseBuffer() {
   if (!noiseBuffer) {
     const c = getCtx();
-    const len = c.sampleRate * 0.25;
+    const len = c.sampleRate * 1.2;
     noiseBuffer = c.createBuffer(1, len, c.sampleRate);
     const data = noiseBuffer.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
@@ -25,23 +26,29 @@ function getNoiseBuffer() {
   return noiseBuffer;
 }
 
-function scheduleSnare(time, nodes) {
+function noiseBurst(time, dur, filterType, freq, peakGain, nodes, q) {
   const c = getCtx();
+  const src = c.createBufferSource();
+  src.buffer = getNoiseBuffer();
+  const filter = c.createBiquadFilter();
+  filter.type = filterType;
+  filter.frequency.value = freq;
+  if (q != null) filter.Q.value = q;
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(peakGain, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(master);
+  src.start(time);
+  src.stop(time + dur + 0.02);
+  nodes.push(src);
+}
 
-  const noise = c.createBufferSource();
-  noise.buffer = getNoiseBuffer();
-  const noiseFilter = c.createBiquadFilter();
-  noiseFilter.type = 'highpass';
-  noiseFilter.frequency.value = 900;
-  const noiseGain = c.createGain();
-  noiseGain.gain.setValueAtTime(1.0, time);
-  noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.16);
-  noise.connect(noiseFilter);
-  noiseFilter.connect(noiseGain);
-  noiseGain.connect(master);
-  noise.start(time);
-  noise.stop(time + 0.18);
+function scheduleSnare(time, nodes) {
+  noiseBurst(time, 0.16, 'highpass', 900, 1.0, nodes);
 
+  const c = getCtx();
   const body = c.createOscillator();
   body.type = 'triangle';
   body.frequency.setValueAtTime(190, time);
@@ -53,8 +60,62 @@ function scheduleSnare(time, nodes) {
   bodyGain.connect(master);
   body.start(time);
   body.stop(time + 0.1);
+  nodes.push(body);
+}
 
-  nodes.push(noise, body);
+function scheduleKick(time, nodes) {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, time);
+  osc.frequency.exponentialRampToValueAtTime(45, time + 0.22);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.9, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.26);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(time);
+  osc.stop(time + 0.3);
+  nodes.push(osc);
+
+  noiseBurst(time, 0.02, 'bandpass', 1800, 0.35, nodes, 0.8);
+}
+
+function scheduleHihat(time, nodes, open = false) {
+  noiseBurst(time, open ? 0.3 : 0.075, 'highpass', 7500, 0.45, nodes);
+}
+
+function scheduleCrash(time, nodes) {
+  noiseBurst(time, 1.1, 'highpass', 3500, 0.5, nodes);
+}
+
+function scheduleTom(freqStart, freqEnd, time, nodes) {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freqStart, time);
+  osc.frequency.exponentialRampToValueAtTime(freqEnd, time + 0.22);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.7, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(time);
+  osc.stop(time + 0.3);
+  nodes.push(osc);
+}
+
+function scheduleHit(instrument, time, nodes) {
+  switch (instrument) {
+    case 'kick': return scheduleKick(time, nodes);
+    case 'hihat': return scheduleHihat(time, nodes);
+    case 'crash': return scheduleCrash(time, nodes);
+    case 'tom1': return scheduleTom(230, 165, time, nodes);
+    case 'tom2': return scheduleTom(165, 120, time, nodes);
+    case 'tom3': return scheduleTom(115, 82, time, nodes);
+    case 'snare':
+    default: return scheduleSnare(time, nodes);
+  }
 }
 
 function scheduleClick(time, accent, nodes) {
@@ -97,7 +158,7 @@ export class Player {
     const now = ctx ? ctx.currentTime : 0;
     this.nodes.forEach(n => { try { n.stop(now); } catch (e) { /* ya detenido */ } });
     this.nodes = [];
-    if (this.onNoteChange) this.onNoteChange(null);
+    if (this.onNoteChange) this.onNoteChange([]);
   }
 
   play({ events, totalBeats, clickBeats, bpm, metronome, onNoteChange, onEnd, onCountIn }) {
@@ -120,7 +181,7 @@ export class Player {
 
     events.forEach(ev => {
       if (ev.kind === 'note') {
-        scheduleSnare(startTime + ev.absStart * secPerBeat, nodes);
+        scheduleHit(ev.instrument, startTime + ev.absStart * secPerBeat, nodes);
       }
     });
 
@@ -146,15 +207,12 @@ export class Player {
       const now = c.currentTime;
       if (now >= endTime) {
         this.playing = false;
-        if (this.onNoteChange) this.onNoteChange(null);
+        if (this.onNoteChange) this.onNoteChange([]);
         if (this.onEnd) this.onEnd();
         return;
       }
       const elapsedBeats = (now - startTime) / secPerBeat;
-      let current = null;
-      for (const ev of events) {
-        if (elapsedBeats >= ev.absStart && elapsedBeats < ev.absStart + ev.dur) { current = ev; break; }
-      }
+      const current = events.filter(ev => elapsedBeats >= ev.absStart && elapsedBeats < ev.absStart + ev.dur);
       if (this.onNoteChange) this.onNoteChange(current);
       this.rafId = requestAnimationFrame(tick);
     };

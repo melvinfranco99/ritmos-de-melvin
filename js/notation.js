@@ -1,27 +1,27 @@
 import { normalizeMeasure, measureOf, contentBeats, pulsesForSig } from './notes.js';
 
-const SVGNS = 'http://www.w3.org/2000/svg';
+export const SVGNS = 'http://www.w3.org/2000/svg';
 
-// Geometria del pentagrama de una sola linea
-const BEAT_WIDTH = 110;
-const PAD_LEFT = 34;
-const PAD_RIGHT = 26;
-const SIG_PAD = 34;
-const LINE_Y = 54;
-const STEM_H = 34;
-const NOTEHEAD_RX = 6.5;
-const NOTEHEAD_RY = 5;
-const BEAM_GAP = 6;
-const BEAM_THICK = 3.4;
-const SCALE = 0.86; // px por unidad de viewBox: mantiene el tamano de las notas constante
+// Geometria del pentagrama de una sola linea (compartida con el pentagrama de bateria)
+export const BEAT_WIDTH = 110;
+export const PAD_LEFT = 34;
+export const PAD_RIGHT = 26;
+export const SIG_PAD = 34;
+const LINE_Y = 64;
+export const STEM_H = 34;
+export const NOTEHEAD_RX = 6.5;
+export const NOTEHEAD_RY = 5;
+export const BEAM_GAP = 6;
+export const BEAM_THICK = 3.4;
+export const SCALE = 0.86; // px por unidad de viewBox: mantiene el tamano de las notas constante
 
-function el(tag, attrs = {}) {
+export function el(tag, attrs = {}) {
   const node = document.createElementNS(SVGNS, tag);
   for (const k in attrs) node.setAttribute(k, attrs[k]);
   return node;
 }
 
-function levelOf(token) {
+export function levelOf(token) {
   if (token.kind !== 'note') return 0;
   if (token.base === 0.5) return 1;
   if (token.base === 0.25) return 2;
@@ -30,7 +30,7 @@ function levelOf(token) {
 }
 
 // Calcula los segmentos de barra (completos o "stub") para un grupo de tokens ya posicionados
-function computeBeams(tokens, xs) {
+export function computeBeams(tokens, xs) {
   const levels = tokens.map(levelOf);
   const maxLevel = Math.max(0, ...levels);
   const beams = [];
@@ -58,7 +58,7 @@ function computeBeams(tokens, xs) {
   return beams;
 }
 
-function drawNotehead(g, x, y, filled) {
+export function drawNotehead(g, x, y, filled) {
   const head = el('ellipse', {
     cx: x, cy: y, rx: NOTEHEAD_RX, ry: NOTEHEAD_RY,
     class: filled ? 'notehead-filled' : 'notehead-open',
@@ -67,11 +67,18 @@ function drawNotehead(g, x, y, filled) {
   g.appendChild(head);
 }
 
-function drawDot(g, x, y) {
+// Cabeza en forma de "x", usada para platillos (hi-hat, ride, crash)
+export function drawXNotehead(g, x, y) {
+  const s = 5.6;
+  g.appendChild(el('line', { x1: x - s, y1: y - s, x2: x + s, y2: y + s, class: 'notehead-x' }));
+  g.appendChild(el('line', { x1: x - s, y1: y + s, x2: x + s, y2: y - s, class: 'notehead-x' }));
+}
+
+export function drawDot(g, x, y) {
   g.appendChild(el('circle', { cx: x + 12, cy: y - 5, r: 2.4, class: 'dot' }));
 }
 
-function drawFlag(g, x, stemTopY, count, dir = 1) {
+export function drawFlag(g, x, stemTopY, count, dir = 1) {
   for (let k = 0; k < count; k++) {
     const y0 = stemTopY + k * 7;
     const path = `M ${x} ${y0} C ${x + 14 * dir} ${y0 + 4}, ${x + 16 * dir} ${y0 + 14}, ${x + 4 * dir} ${y0 + 20}`;
@@ -79,15 +86,14 @@ function drawFlag(g, x, stemTopY, count, dir = 1) {
   }
 }
 
-function drawText(parent, x, y, str, cls) {
+export function drawText(parent, x, y, str, cls) {
   const t = el('text', { x, y, class: cls, 'text-anchor': 'middle' });
   t.textContent = str;
   parent.appendChild(t);
 }
 
 // Silencios dibujados como glifos simples y reconocibles
-function drawRest(g, x, base) {
-  const y = LINE_Y;
+export function drawRest(g, x, y, base) {
   if (base === 4) {
     g.appendChild(el('rect', { x: x - 8, y: y - 12, width: 16, height: 6, class: 'rest' }));
   } else if (base === 2) {
@@ -100,12 +106,13 @@ function drawRest(g, x, base) {
                C ${x - 8} ${y - 4}, ${x - 8} ${y - 10}, ${x - 2} ${y - 14} Z`;
     g.appendChild(el('path', { d, class: 'rest' }));
   } else {
-    // corchea / semicorchea / fusa: linea con 1, 2 o 3 ganchos
+    // corchea / semicorchea / fusa: trazo grueso con 1, 2 o 3 "ganchos" rellenos,
+    // bien visibles y diferenciados de cualquier otro simbolo del pentagrama
     const hooks = base === 0.5 ? 1 : base === 0.25 ? 2 : 3;
-    g.appendChild(el('line', { x1: x, y1: y - 14, x2: x + 3, y2: y + 12, class: 'rest-stem' }));
     for (let k = 0; k < hooks; k++) {
-      const cy = y - 12 + k * 7;
-      g.appendChild(el('circle', { cx: x + 2 + k * 1.2, cy: cy + 3, r: 2.6, class: 'rest-flag' }));
+      const oy = y - 10 + k * 8;
+      g.appendChild(el('line', { x1: x + 5, y1: oy - 6, x2: x - 4, y2: oy + 8, class: 'rest-stem' }));
+      g.appendChild(el('circle', { cx: x + 5, cy: oy - 6, r: 3.2, class: 'rest-flag' }));
     }
   }
 }
@@ -125,12 +132,12 @@ function drawTuplet(svg, tokens, xs) {
   const levels = tokens.map(levelOf);
   const maxLevel = Math.max(0, ...levels);
   if (maxLevel > 0) {
-    const y = stemTopY - (maxLevel - 1) * BEAM_GAP - 9;
+    const y = stemTopY - (maxLevel - 1) * BEAM_GAP - 11;
     drawText(svg, midX, y, '3', 'tuplet-number');
   } else {
-    const y = stemTopY - 9;
-    svg.appendChild(el('polyline', { points: `${x1},${y + 5} ${x1},${y} ${x2},${y} ${x2},${y + 5}`, class: 'tuplet-bracket' }));
-    drawText(svg, midX, y - 3, '3', 'tuplet-number');
+    const y = stemTopY - 10;
+    svg.appendChild(el('polyline', { points: `${x1},${y + 6} ${x1},${y} ${x2},${y} ${x2},${y + 6}`, class: 'tuplet-bracket' }));
+    drawText(svg, midX, y - 4, '3', 'tuplet-number');
   }
 }
 
@@ -148,7 +155,7 @@ export function renderMeasure(svg, measure, { number, showSig } = {}) {
   const groups = normalizeMeasure(content);
   const extraLeft = showSig ? SIG_PAD : 0;
   const width = measureWidth(content, extraLeft);
-  const height = 92;
+  const height = 104;
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('class', 'measure-svg');
   svg.style.width = `${width * SCALE}px`;
@@ -184,7 +191,7 @@ export function renderMeasure(svg, measure, { number, showSig } = {}) {
       svg.appendChild(g);
 
       if (tok.kind === 'rest') {
-        drawRest(g, x, tok.base);
+        drawRest(g, x, LINE_Y, tok.base);
       } else {
         const filled = tok.base < 4 && tok.base !== 2;
         const isWhole = tok.base === 4;
@@ -248,7 +255,7 @@ export function renderGlyph(svg, token) {
   svg.appendChild(g);
 
   if (token.kind === 'rest') {
-    drawRest(g, cx + 6, token.base);
+    drawRest(g, cx + 6, cy, token.base);
   } else {
     const filled = token.base < 4 && token.base !== 2;
     const isWhole = token.base === 4;

@@ -44,7 +44,8 @@ const CELLS_1 = [
   cell(() => [Q()]),
   cell(() => [rQ()]),
   cell(() => [beam(E(), E())], ['eighth']),
-  cell(() => [beam(E(), rE())], ['eighth']),
+  // ojo: se evita a proposito la celda [corchea, silencio de corchea]: en una
+  // caja sin resonancia suena identico a una negra suelta y confunde al leer.
   cell(() => [beam(rE(), E())], ['eighth']),
   cell(() => [beam(S(), S(), S(), S())], ['sixteenth']),
   cell(() => [beam(E(), S(), S())], ['mixedEighthSixteenth']),

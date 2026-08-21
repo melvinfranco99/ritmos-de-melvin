@@ -49,14 +49,78 @@ export function beam(...tokens) {
   return { kind: 'group', tokens };
 }
 
-// Normaliza una medida (array de tokens sueltos o grupos) a una lista de grupos
-export function normalizeMeasure(measure) {
-  return measure.map(item => (item.kind === 'group' ? item : { kind: 'group', tokens: [item] }));
+// Tresillos: 3 figuras en el tiempo de 2, p.ej. 3 negras en el tiempo de 2 negras.
+const TRIPLET_NAME = { 2: 'blanca', 1: 'negra', 0.5: 'corchea', 0.25: 'semicorchea' };
+
+function tripletToken(kind, base) {
+  const name = TRIPLET_NAME[base];
+  return {
+    kind,
+    base,
+    dotted: false,
+    beats: (base * 2) / 3,
+    label: kind === 'rest' ? `silencio de ${name} (tresillo)` : `${name} (tresillo)`
+  };
 }
 
-export function measureBeats(measure) {
-  return normalizeMeasure(measure).reduce(
+function tripletGroup(base, pattern = ['note', 'note', 'note']) {
+  return { kind: 'group', tokens: pattern.map(k => tripletToken(k, base)), tuplet: 3 };
+}
+
+export const TRIPLET = {
+  blanca: (pattern) => tripletGroup(2, pattern),
+  negra: (pattern) => tripletGroup(1, pattern),
+  corchea: (pattern) => tripletGroup(0.5, pattern),
+  semicorchea: (pattern) => tripletGroup(0.25, pattern)
+};
+
+// Atajos: tresillo de blanca / negra / corchea / semicorchea
+export const trH = TRIPLET.blanca;
+export const trQ = TRIPLET.negra;
+export const trE = TRIPLET.corchea;
+export const trS = TRIPLET.semicorchea;
+
+// Normaliza una medida (array de tokens sueltos o grupos) a una lista de grupos
+export function normalizeMeasure(content) {
+  return content.map(item => (item.kind === 'group' ? item : { kind: 'group', tokens: [item] }));
+}
+
+export function contentBeats(content) {
+  return normalizeMeasure(content).reduce(
     (sum, g) => sum + g.tokens.reduce((s, t) => s + t.beats, 0),
     0
   );
+}
+
+// Una medida puede ser un array "plano" de contenido (se asume compas de 4/4)
+// o un objeto { sig: [numerador, denominador], content: [...] } para otros compases.
+export function measureOf(measure) {
+  return Array.isArray(measure) ? { sig: [4, 4], content: measure } : measure;
+}
+
+export function measureBeats(measure) {
+  return contentBeats(measureOf(measure).content);
+}
+
+// Duracion total de un compas (en negras) segun su indicador de compas
+export function sigBeats([num, den]) {
+  return num * (4 / den);
+}
+
+// Pulsos (en negras, relativos al inicio del compas) donde debe sonar el metronomo.
+// Para compases de denominador 8 se agrupan las corcheas en celdas de 3 y 2
+// siguiendo la convencion habitual (6/8 = 3+3, 5/8 = 3+2, 7/8 = 3+2+2).
+export const EIGHT_GROUPING = { 5: [3, 2], 6: [3, 3], 7: [3, 2, 2], 8: [3, 3, 2], 9: [3, 3, 3] };
+
+export function pulsesForSig([num, den]) {
+  if (den === 4) return Array.from({ length: num }, (_, i) => i);
+  if (den === 8) {
+    const groups = EIGHT_GROUPING[num] || Array(Math.round(num / 2)).fill(2);
+    const pulses = [];
+    let acc = 0;
+    groups.forEach(g => { pulses.push(acc); acc += g * 0.5; });
+    return pulses;
+  }
+  const beats = sigBeats([num, den]);
+  return Array.from({ length: Math.round(beats) }, (_, i) => i);
 }

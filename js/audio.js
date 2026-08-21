@@ -100,7 +100,7 @@ export class Player {
     if (this.onNoteChange) this.onNoteChange(null);
   }
 
-  play({ events, totalBeats, bpm, metronome, onNoteChange, onEnd, onCountIn }) {
+  play({ events, totalBeats, clickBeats, bpm, metronome, onNoteChange, onEnd, onCountIn }) {
     this.stop();
     const c = getCtx();
     c.resume();
@@ -125,10 +125,7 @@ export class Player {
     });
 
     if (metronome) {
-      const beatCount = Math.round(totalBeats);
-      for (let b = 0; b < beatCount; b++) {
-        scheduleClick(startTime + b * secPerBeat, b % 4 === 0, nodes);
-      }
+      clickBeats.forEach(cb => scheduleClick(startTime + cb.beat * secPerBeat, cb.accent, nodes));
     }
 
     this.nodes = nodes;

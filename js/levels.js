@@ -1,7 +1,9 @@
-import { W, H, Q, E, S, F, rQ, rE, beam } from './notes.js';
+import { W, H, Q, E, S, F, rQ, rE, beam, trH, trQ, trE, trS } from './notes.js';
+import { generateLevel } from './generator.js';
 
-// 10 niveles x 6 compases en 4/4. Cada compas suma exactamente 4 negras.
-// Progresion: redonda/blanca/negra -> corcheas -> puntillo -> semicorcheas -> combinaciones -> fusas -> mezcla final.
+// Progresion: redonda/blanca/negra -> corcheas -> puntillo -> semicorcheas -> combinaciones ->
+// tresillos y compases nuevos (3/4, 6/8...) -> fusas -> mezcla final con muchos compases distintos.
+// Cada compas (o su version { sig, content }) suma exactamente los tiempos de su indicador.
 
 export const LEVELS = [
   {
@@ -92,7 +94,7 @@ export const LEVELS = [
   {
     id: 6,
     color: '#d98a3d',
-    resumen: 'Llegan las semicorcheas',
+    resumen: 'Semicorcheas y primeros tresillos',
     measures: [
       [beam(S(), S(), S(), S()), Q(), beam(E(), E()), Q()],
       [Q(), beam(S(), S(), S(), S()), Q(), Q()],
@@ -101,15 +103,15 @@ export const LEVELS = [
       [Q(), Q(), beam(S(), S(), S(), S()), beam(E(), E())],
       [beam(S(), S(), S(), S()), beam(E(), E()), beam(S(), S(), S(), S()), Q()],
       [Q(), beam(S(), S(), S(), S()), beam(E(), E()), Q()],
-      [beam(S(), S(), S(), S()), Q(), Q(), beam(E(), E())],
-      [beam(E(), E()), Q(), beam(S(), S(), S(), S()), Q()],
-      [Q(), beam(S(), S(), S(), S()), beam(S(), S(), S(), S()), Q()]
+      [trE(), Q(), beam(S(), S(), S(), S()), Q()],
+      [trQ(), Q(), Q()],
+      { sig: [3, 4], content: [beam(S(), S(), S(), S()), Q(), Q()] }
     ]
   },
   {
     id: 7,
     color: '#de6f3d',
-    resumen: 'Corchea + dos semicorcheas',
+    resumen: 'Tresillos de corchea/semicorchea y compases de 3/4 y 6/8',
     measures: [
       [beam(E(), S(), S()), Q(), beam(S(), S(), E()), Q()],
       [beam(S(), S(), E()), beam(E(), S(), S()), Q(), Q()],
@@ -117,61 +119,61 @@ export const LEVELS = [
       [beam(S(), S(), S(), S()), beam(E(), S(), S()), Q(), Q()],
       [beam(E(), S(), S()), beam(S(), S(), E()), beam(S(), S(), S(), S()), Q()],
       [Q(), beam(S(), S(), E()), beam(E(), S(), S()), beam(E(), E())],
-      [beam(S(), S(), E()), beam(S(), S(), S(), S()), Q(), Q()],
-      [Q(), beam(S(), S(), S(), S()), beam(E(), S(), S()), Q()],
-      [beam(E(), S(), S()), Q(), beam(S(), S(), E()), Q()],
-      [beam(S(), S(), E()), beam(S(), S(), E()), beam(E(), S(), S()), Q()]
+      [trS(), trS(), Q(), beam(S(), S(), S(), S()), Q()],
+      { sig: [6, 8], content: [beam(E(), E(), E()), beam(E(), E(), E())] },
+      [trE(['note', 'rest', 'note']), beam(S(), S(), E()), Q(), Q()],
+      { sig: [3, 4], content: [trQ(), Q()] }
     ]
   },
   {
     id: 8,
     color: '#e35a4d',
-    resumen: 'Corchea con puntillo y semicorchea',
-    measures: [
-      [beam(E(true), S()), Q(), beam(S(), E(true)), Q()],
-      [beam(S(), E(true)), beam(E(true), S()), Q(), Q()],
-      [Q(), beam(E(true), S()), beam(S(), S(), S(), S()), beam(S(), E(true))],
-      [beam(E(true), S()), beam(S(), E(true)), beam(E(), S(), S()), Q()],
-      [Q(true), E(), beam(E(true), S()), Q()],
-      [H(true), beam(E(true), S())],
-      [beam(E(true), S()), beam(S(), E(true)), beam(S(), S(), S(), S()), Q()],
-      [Q(), beam(E(true), S()), Q(), beam(S(), E(true))],
-      [beam(E(true), S()), beam(E(), S(), S()), beam(S(), E(true)), Q()],
-      [Q(true), E(), beam(S(), E(true)), Q()]
-    ]
+    resumen: '50 ejercicios: corchea con puntillo, fusas, tresillos, 3/4 y 6/8',
+    measures: generateLevel({
+      seed: 800008,
+      count: 50,
+      meters: [
+        { sig: [4, 4], w: 0.5 },
+        { sig: [3, 4], w: 0.3 },
+        { sig: [6, 8], w: 0.2 }
+      ],
+      boosts: { triplet: 1.0, fusa: 0.8 }
+    })
   },
   {
     id: 9,
     color: '#e2477a',
-    resumen: 'Llegan las fusas',
-    measures: [
-      [beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), beam(S(), S(), S(), S()), Q()],
-      [beam(S(), S(), S(), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
-      [Q(), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(E(), E()), Q()],
-      [beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
-      [beam(E(), S(), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
-      [Q(), beam(S(), S(), S(), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(E(), E())],
-      [Q(), beam(S(), S(), S(), S()), beam(S(), S(), S(), S()), Q()],
-      [beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q(), beam(E(), E())],
-      [beam(S(), S(), E()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
-      [Q(), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(S(), S(), S(), S()), Q()]
-    ]
+    resumen: '50 ejercicios: mas tresillos y compases de 7/8 y 5/8',
+    measures: generateLevel({
+      seed: 900009,
+      count: 50,
+      meters: [
+        { sig: [4, 4], w: 0.22 },
+        { sig: [3, 4], w: 0.18 },
+        { sig: [6, 8], w: 0.2 },
+        { sig: [7, 8], w: 0.2 },
+        { sig: [5, 8], w: 0.2 }
+      ],
+      boosts: { triplet: 1.6, fusa: 1.1 }
+    })
   },
   {
     id: 10,
     color: '#a13fd6',
-    resumen: 'Mezcla final: todas las figuras',
-    measures: [
-      [beam(S(true), F(), E()), Q(true), E(), Q()],
-      [beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(E(true), S()), Q(true), E()],
-      [Q(true), E(), beam(S(), E(true)), Q()],
-      [beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(S(true), F(), E()), Q(true), E()],
-      [H(true), beam(F(), F(), F(), F(), F(), F(), F(), F())],
-      [beam(E(true), S()), beam(S(true), F(), E()), Q(true), E()],
-      [beam(E(true), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(true), E()],
-      [Q(true), E(), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q()],
-      [beam(S(true), F(), E()), beam(S(), E(true)), Q(true), E()],
-      [H(true), beam(S(true), F(), E())]
-    ]
+    resumen: 'Nivel maestro: 50 ejercicios con todo, incluidos compases de 5/4 y 7/4',
+    measures: generateLevel({
+      seed: 101010,
+      count: 50,
+      meters: [
+        { sig: [4, 4], w: 0.14 },
+        { sig: [3, 4], w: 0.14 },
+        { sig: [6, 8], w: 0.14 },
+        { sig: [7, 8], w: 0.14 },
+        { sig: [5, 8], w: 0.12 },
+        { sig: [5, 4], w: 0.16 },
+        { sig: [7, 4], w: 0.16 }
+      ],
+      boosts: { triplet: 2.3, fusa: 1.4 }
+    })
   }
 ];

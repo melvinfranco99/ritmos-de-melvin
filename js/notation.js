@@ -1,4 +1,4 @@
-import { normalizeMeasure } from './notes.js';
+import { normalizeMeasure, measureOf, contentBeats, pulsesForSig } from './notes.js';
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -6,12 +6,14 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const BEAT_WIDTH = 110;
 const PAD_LEFT = 34;
 const PAD_RIGHT = 26;
+const SIG_PAD = 34;
 const LINE_Y = 54;
 const STEM_H = 34;
 const NOTEHEAD_RX = 6.5;
 const NOTEHEAD_RY = 5;
 const BEAM_GAP = 6;
 const BEAM_THICK = 3.4;
+const SCALE = 0.86; // px por unidad de viewBox: mantiene el tamano de las notas constante
 
 function el(tag, attrs = {}) {
   const node = document.createElementNS(SVGNS, tag);
@@ -77,6 +79,12 @@ function drawFlag(g, x, stemTopY, count, dir = 1) {
   }
 }
 
+function drawText(parent, x, y, str, cls) {
+  const t = el('text', { x, y, class: cls, 'text-anchor': 'middle' });
+  t.textContent = str;
+  parent.appendChild(t);
+}
+
 // Silencios dibujados como glifos simples y reconocibles
 function drawRest(g, x, base) {
   const y = LINE_Y;
@@ -102,21 +110,49 @@ function drawRest(g, x, base) {
   }
 }
 
-function measureWidth(measureGroups) {
-  const beats = measureGroups.reduce((s, g) => s + g.tokens.reduce((a, t) => a + t.beats, 0), 0);
-  return PAD_LEFT + PAD_RIGHT + beats * BEAT_WIDTH;
+// Dibuja el indicador de compas (numerador / denominador) al inicio de un pentagrama
+function drawTimeSig(svg, x, [num, den]) {
+  drawText(svg, x, LINE_Y - 6, String(num), 'time-sig');
+  drawText(svg, x, LINE_Y + 20, String(den), 'time-sig');
+}
+
+// Dibuja el corchete y el numero "3" de un tresillo sobre un grupo ya posicionado
+function drawTuplet(svg, tokens, xs) {
+  const stemTopY = LINE_Y - STEM_H;
+  const x1 = xs[0] + NOTEHEAD_RX - 1;
+  const x2 = xs[xs.length - 1] + NOTEHEAD_RX - 1;
+  const midX = (x1 + x2) / 2;
+  const levels = tokens.map(levelOf);
+  const maxLevel = Math.max(0, ...levels);
+  if (maxLevel > 0) {
+    const y = stemTopY - (maxLevel - 1) * BEAM_GAP - 9;
+    drawText(svg, midX, y, '3', 'tuplet-number');
+  } else {
+    const y = stemTopY - 9;
+    svg.appendChild(el('polyline', { points: `${x1},${y + 5} ${x1},${y} ${x2},${y} ${x2},${y + 5}`, class: 'tuplet-bracket' }));
+    drawText(svg, midX, y - 3, '3', 'tuplet-number');
+  }
+}
+
+function measureWidth(content, extraLeft = 0) {
+  const beats = contentBeats(content);
+  return PAD_LEFT + extraLeft + PAD_RIGHT + beats * BEAT_WIDTH;
 }
 
 /**
  * Dibuja un compas dentro de un <svg> ya creado. Devuelve la lista de elementos
  * {el, start, dur} en orden, para sincronizar el resaltado durante la reproduccion.
  */
-export function renderMeasure(svg, measure, { number } = {}) {
-  const groups = normalizeMeasure(measure);
-  const width = measureWidth(groups);
+export function renderMeasure(svg, measure, { number, showSig } = {}) {
+  const { sig, content } = measureOf(measure);
+  const groups = normalizeMeasure(content);
+  const extraLeft = showSig ? SIG_PAD : 0;
+  const width = measureWidth(content, extraLeft);
   const height = 92;
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('class', 'measure-svg');
+  svg.style.width = `${width * SCALE}px`;
+  svg.style.height = `${height * SCALE}px`;
 
   // Linea del pentagrama
   svg.appendChild(el('line', { x1: 2, y1: LINE_Y, x2: width - 2, y2: LINE_Y, class: 'staff-line' }));
@@ -127,10 +163,13 @@ export function renderMeasure(svg, measure, { number } = {}) {
   if (number != null) {
     svg.appendChild(el('text', { x: 4, y: 16, class: 'measure-number' })).textContent = number;
   }
+  if (showSig) {
+    drawTimeSig(svg, PAD_LEFT + extraLeft - BEAT_WIDTH * 0.42, sig);
+  }
 
   const events = [];
   let cursorBeat = 0;
-  const xOf = beat => PAD_LEFT + beat * BEAT_WIDTH;
+  const xOf = beat => PAD_LEFT + extraLeft + beat * BEAT_WIDTH;
 
   groups.forEach(group => {
     const tokens = group.tokens;
@@ -187,16 +226,16 @@ export function renderMeasure(svg, measure, { number } = {}) {
       });
     }
 
+    if (group.tuplet) {
+      drawTuplet(svg, tokens, xs);
+    }
+
     cursorBeat = gcursor;
   });
 
   return events;
 }
 
-/**
- * Renderiza un nivel completo (varios compases apilados). Devuelve la lista
- * global de eventos con su tiempo absoluto en beats, para la reproduccion.
- */
 // Dibuja un unico glifo (nota o silencio) centrado, usado para la leyenda de figuras.
 export function renderGlyph(svg, token) {
   const width = 46, height = 70;
@@ -224,25 +263,41 @@ export function renderGlyph(svg, token) {
   }
 }
 
+/**
+ * Renderiza un nivel completo (varios compases). Devuelve la lista global de
+ * eventos con su tiempo absoluto en beats (para el resaltado) y los pulsos de
+ * metronomo de cada compas (para acentuar el primer tiempo de cada uno).
+ */
 export function renderLevel(container, measures) {
   container.innerHTML = '';
   const allEvents = [];
+  const clickBeats = [];
   let absBeat = 0;
+  let prevSigKey = null;
 
   measures.forEach((measure, i) => {
+    const { sig, content } = measureOf(measure);
+    const sigKey = sig.join('/');
+    const showSig = sigKey !== prevSigKey;
+    prevSigKey = sigKey;
+
     const wrapper = document.createElement('div');
     wrapper.className = 'measure-row';
     const svg = document.createElementNS(SVGNS, 'svg');
     wrapper.appendChild(svg);
     container.appendChild(wrapper);
 
-    const events = renderMeasure(svg, measure, { number: i + 1 });
+    const events = renderMeasure(svg, measure, { number: i + 1, showSig });
     events.forEach(ev => {
       allEvents.push({ el: ev.el, absStart: absBeat + ev.start, dur: ev.dur, kind: ev.kind });
     });
-    const beats = normalizeMeasure(measure).reduce((s, g) => s + g.tokens.reduce((a, t) => a + t.beats, 0), 0);
-    absBeat += beats;
+
+    pulsesForSig(sig).forEach((p, idx) => {
+      clickBeats.push({ beat: absBeat + p, accent: idx === 0 });
+    });
+
+    absBeat += contentBeats(content);
   });
 
-  return { events: allEvents, totalBeats: absBeat };
+  return { events: allEvents, totalBeats: absBeat, clickBeats };
 }

@@ -92,7 +92,7 @@ function renderLevelView(id) {
   document.getElementById('btn-back').addEventListener('click', () => go('#/'));
 
   const staff = document.getElementById('staff');
-  const { events, totalBeats } = renderLevel(staff, lvl.measures);
+  const { events, totalBeats, clickBeats } = renderLevel(staff, lvl.measures);
 
   buildLegend(document.getElementById('legend'));
 
@@ -128,6 +128,7 @@ function renderLevelView(id) {
     player.play({
       events,
       totalBeats,
+      clickBeats,
       bpm: Number(bpmRange.value),
       metronome: metronomeToggle.checked,
       onNoteChange: setActive,

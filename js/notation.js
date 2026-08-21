@@ -3,7 +3,7 @@ import { normalizeMeasure } from './notes.js';
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 // Geometria del pentagrama de una sola linea
-const BEAT_WIDTH = 140;
+const BEAT_WIDTH = 110;
 const PAD_LEFT = 34;
 const PAD_RIGHT = 26;
 const LINE_Y = 54;

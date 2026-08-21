@@ -72,10 +72,13 @@ function scheduleClick(time, accent, nodes) {
   nodes.push(osc);
 }
 
+const COUNT_IN_BEATS = 4;
+
 export class Player {
   constructor() {
     this.playing = false;
     this.nodes = [];
+    this.timeouts = [];
     this.rafId = null;
     this.onNoteChange = null;
     this.onEnd = null;
@@ -89,13 +92,15 @@ export class Player {
     this.playing = false;
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
+    this.timeouts.forEach(t => clearTimeout(t));
+    this.timeouts = [];
     const now = ctx ? ctx.currentTime : 0;
     this.nodes.forEach(n => { try { n.stop(now); } catch (e) { /* ya detenido */ } });
     this.nodes = [];
     if (this.onNoteChange) this.onNoteChange(null);
   }
 
-  play({ events, totalBeats, bpm, metronome, onNoteChange, onEnd }) {
+  play({ events, totalBeats, bpm, metronome, onNoteChange, onEnd, onCountIn }) {
     this.stop();
     const c = getCtx();
     c.resume();
@@ -103,8 +108,15 @@ export class Player {
     this.onEnd = onEnd;
 
     const secPerBeat = 60 / bpm;
-    const startTime = c.currentTime + 0.12;
+    const leadIn = 0.12;
+    const countInStart = c.currentTime + leadIn;
     const nodes = [];
+
+    // 4 golpes de metronomo de referencia antes de empezar el ejercicio
+    for (let b = 0; b < COUNT_IN_BEATS; b++) {
+      scheduleClick(countInStart + b * secPerBeat, b === 0, nodes);
+    }
+    const startTime = countInStart + COUNT_IN_BEATS * secPerBeat;
 
     events.forEach(ev => {
       if (ev.kind === 'note') {
@@ -121,6 +133,15 @@ export class Player {
 
     this.nodes = nodes;
     this.playing = true;
+
+    if (onCountIn) {
+      for (let b = 0; b < COUNT_IN_BEATS; b++) {
+        const id = setTimeout(() => { if (this.playing) onCountIn(b); }, (leadIn + b * secPerBeat) * 1000);
+        this.timeouts.push(id);
+      }
+      const doneId = setTimeout(() => { if (this.playing) onCountIn(-1); }, (leadIn + COUNT_IN_BEATS * secPerBeat) * 1000);
+      this.timeouts.push(doneId);
+    }
 
     const endTime = startTime + totalBeats * secPerBeat;
     const tick = () => {

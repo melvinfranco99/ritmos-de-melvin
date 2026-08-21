@@ -79,6 +79,8 @@ function renderLevelView(id) {
         <input type="checkbox" id="metronome-toggle" />
         <span>Metronomo</span>
       </label>
+
+      <div class="count-in" id="count-in" aria-live="polite"></div>
     </div>
 
     <div class="staff-container" id="staff"></div>
@@ -100,6 +102,7 @@ function renderLevelView(id) {
 
   const metronomeToggle = document.getElementById('metronome-toggle');
   const playBtn = document.getElementById('btn-play');
+  const countInEl = document.getElementById('count-in');
 
   let activeEl = null;
   function setActive(ev) {
@@ -108,14 +111,19 @@ function renderLevelView(id) {
     if (activeEl) activeEl.classList.add('active');
   }
 
+  function resetPlayUI() {
+    playBtn.textContent = '▶ Reproducir';
+    playBtn.classList.remove('playing');
+    countInEl.textContent = '';
+  }
+
   playBtn.addEventListener('click', () => {
     if (player.isPlaying()) {
       player.stop();
-      playBtn.textContent = '▶ Reproducir';
-      playBtn.classList.remove('playing');
+      resetPlayUI();
       return;
     }
-    playBtn.textContent = '■ Detener';
+    playBtn.textContent = '⏳ Preparando…';
     playBtn.classList.add('playing');
     player.play({
       events,
@@ -123,10 +131,15 @@ function renderLevelView(id) {
       bpm: Number(bpmRange.value),
       metronome: metronomeToggle.checked,
       onNoteChange: setActive,
-      onEnd: () => {
-        playBtn.textContent = '▶ Reproducir';
-        playBtn.classList.remove('playing');
-      }
+      onCountIn: beat => {
+        if (beat === -1) {
+          countInEl.textContent = '';
+          playBtn.textContent = '■ Detener';
+        } else {
+          countInEl.textContent = `🥁 ${beat + 1}`;
+        }
+      },
+      onEnd: resetPlayUI
     });
   });
 }

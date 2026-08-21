@@ -14,7 +14,11 @@ export const LEVELS = [
       [Q(), Q(), H()],
       [H(), Q(), Q()],
       [Q(), Q(), Q(), Q()],
-      [rQ(), Q(), H()]
+      [rQ(), Q(), H()],
+      [Q(), H(), Q()],
+      [rQ(), H(), Q()],
+      [H(), rQ(), Q()],
+      [Q(), Q(), rQ(), Q()]
     ]
   },
   {
@@ -27,7 +31,11 @@ export const LEVELS = [
       [H(), beam(E(), E()), Q()],
       [Q(), rQ(), beam(E(), E()), Q()],
       [beam(E(), E()), Q(), rQ(), beam(E(), E())],
-      [Q(), beam(E(), E()), beam(E(), E()), Q()]
+      [Q(), beam(E(), E()), beam(E(), E()), Q()],
+      [beam(E(), E()), Q(), Q(), rQ()],
+      [Q(), beam(E(), E()), rQ(), Q()],
+      [H(), Q(), beam(E(), E())],
+      [beam(E(), E()), beam(E(), E()), beam(E(), E()), Q()]
     ]
   },
   {
@@ -40,7 +48,11 @@ export const LEVELS = [
       [beam(E(), E()), beam(E(), rE()), beam(E(), E()), Q()],
       [Q(), beam(rE(), E()), beam(E(), rE()), Q()],
       [beam(E(), E()), beam(E(), E()), beam(E(), E()), Q()],
-      [rQ(), beam(E(), E()), Q(), beam(E(), rE())]
+      [rQ(), beam(E(), E()), Q(), beam(E(), rE())],
+      [beam(E(), rE()), beam(rE(), E()), beam(E(), E()), Q()],
+      [Q(), beam(E(), rE()), Q(), beam(rE(), E())],
+      [beam(E(), E()), rQ(), beam(E(), rE()), Q()],
+      [beam(rE(), E()), beam(E(), E()), beam(rE(), E()), Q()]
     ]
   },
   {
@@ -53,7 +65,11 @@ export const LEVELS = [
       [Q(), Q(true), E(), Q()],
       [beam(E(), E()), Q(true), E(), Q()],
       [H(true), beam(E(), E())],
-      [Q(true), E(), H()]
+      [Q(true), E(), H()],
+      [Q(), Q(true), E(), Q()],
+      [Q(), H(true)],
+      [Q(true), E(), Q(true), E()],
+      [Q(), Q(), Q(true), E()]
     ]
   },
   {
@@ -66,7 +82,11 @@ export const LEVELS = [
       [beam(E(), E()), beam(E(), E()), Q(true), E()],
       [Q(true), E(), beam(E(), E()), Q()],
       [beam(rE(), E()), beam(E(), rE()), Q(true), E()],
-      [Q(), Q(true), E(), Q()]
+      [Q(), Q(true), E(), Q()],
+      [Q(true), E(), beam(E(), E()), Q()],
+      [rQ(), Q(true), E(), Q()],
+      [beam(rE(), E()), Q(), Q(true), E()],
+      [Q(true), E(), rQ(), Q()]
     ]
   },
   {
@@ -79,7 +99,11 @@ export const LEVELS = [
       [beam(E(), E()), beam(S(), S(), S(), S()), Q(), Q()],
       [beam(S(), S(), S(), S()), beam(S(), S(), S(), S()), Q(), Q()],
       [Q(), Q(), beam(S(), S(), S(), S()), beam(E(), E())],
-      [beam(S(), S(), S(), S()), beam(E(), E()), beam(S(), S(), S(), S()), Q()]
+      [beam(S(), S(), S(), S()), beam(E(), E()), beam(S(), S(), S(), S()), Q()],
+      [Q(), beam(S(), S(), S(), S()), beam(E(), E()), Q()],
+      [beam(S(), S(), S(), S()), Q(), Q(), beam(E(), E())],
+      [beam(E(), E()), Q(), beam(S(), S(), S(), S()), Q()],
+      [Q(), beam(S(), S(), S(), S()), beam(S(), S(), S(), S()), Q()]
     ]
   },
   {
@@ -92,7 +116,11 @@ export const LEVELS = [
       [Q(), beam(E(), S(), S()), beam(S(), S(), E()), Q()],
       [beam(S(), S(), S(), S()), beam(E(), S(), S()), Q(), Q()],
       [beam(E(), S(), S()), beam(S(), S(), E()), beam(S(), S(), S(), S()), Q()],
-      [Q(), beam(S(), S(), E()), beam(E(), S(), S()), beam(E(), E())]
+      [Q(), beam(S(), S(), E()), beam(E(), S(), S()), beam(E(), E())],
+      [beam(S(), S(), E()), beam(S(), S(), S(), S()), Q(), Q()],
+      [Q(), beam(S(), S(), S(), S()), beam(E(), S(), S()), Q()],
+      [beam(E(), S(), S()), Q(), beam(S(), S(), E()), Q()],
+      [beam(S(), S(), E()), beam(S(), S(), E()), beam(E(), S(), S()), Q()]
     ]
   },
   {
@@ -105,7 +133,11 @@ export const LEVELS = [
       [Q(), beam(E(true), S()), beam(S(), S(), S(), S()), beam(S(), E(true))],
       [beam(E(true), S()), beam(S(), E(true)), beam(E(), S(), S()), Q()],
       [Q(true), E(), beam(E(true), S()), Q()],
-      [H(true), beam(E(true), S())]
+      [H(true), beam(E(true), S())],
+      [beam(E(true), S()), beam(S(), E(true)), beam(S(), S(), S(), S()), Q()],
+      [Q(), beam(E(true), S()), Q(), beam(S(), E(true))],
+      [beam(E(true), S()), beam(E(), S(), S()), beam(S(), E(true)), Q()],
+      [Q(true), E(), beam(S(), E(true)), Q()]
     ]
   },
   {
@@ -118,7 +150,11 @@ export const LEVELS = [
       [Q(), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(E(), E()), Q()],
       [beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
       [beam(E(), S(), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
-      [Q(), beam(S(), S(), S(), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(E(), E())]
+      [Q(), beam(S(), S(), S(), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(E(), E())],
+      [Q(), beam(S(), S(), S(), S()), beam(S(), S(), S(), S()), Q()],
+      [beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q(), beam(E(), E())],
+      [beam(S(), S(), E()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(), Q()],
+      [Q(), beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(S(), S(), S(), S()), Q()]
     ]
   },
   {
@@ -131,7 +167,11 @@ export const LEVELS = [
       [Q(true), E(), beam(S(), E(true)), Q()],
       [beam(F(), F(), F(), F(), F(), F(), F(), F()), beam(S(true), F(), E()), Q(true), E()],
       [H(true), beam(F(), F(), F(), F(), F(), F(), F(), F())],
-      [beam(E(true), S()), beam(S(true), F(), E()), Q(true), E()]
+      [beam(E(true), S()), beam(S(true), F(), E()), Q(true), E()],
+      [beam(E(true), S()), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q(true), E()],
+      [Q(true), E(), beam(F(), F(), F(), F(), F(), F(), F(), F()), Q()],
+      [beam(S(true), F(), E()), beam(S(), E(true)), Q(true), E()],
+      [H(true), beam(S(true), F(), E())]
     ]
   }
 ];

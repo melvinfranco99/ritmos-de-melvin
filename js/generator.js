@@ -151,14 +151,27 @@ function fingerprint(content) {
   )).join('|');
 }
 
+// Cada ejercicio recibe una "personalidad" propia: algunos insisten mas en
+// tresillos, otros en fusas, otros en sincopas... para que se note la
+// diferencia entre ejercicios de un mismo nivel, sobre todo en los niveles
+// con mas figuras desbloqueadas.
+function exercisePersonality(rng, allowedTags, boosts) {
+  const personal = {};
+  allowedTags.forEach(tag => {
+    const base = boosts[tag] || 1;
+    personal[tag] = base * (0.45 + rng() * 1.55); // ~0.45x - 2x del peso base
+  });
+  return personal;
+}
+
 /**
  * Genera `count` ejercicios independientes, cada uno con `measuresPerExercise`
- * compases (por defecto 25). Salvo que `mixedSig` sea true, cada ejercicio
+ * compases (por defecto 20). Salvo que `mixedSig` sea true, cada ejercicio
  * mantiene un unico compas del principio al final (uno en 4/4, otro en 7/8...).
  * `allowedTags` controla que figuras estan desbloqueadas en el nivel.
  */
 export function generateExercises({
-  seed, count, measuresPerExercise = 25, meters, allowedTags = [], boosts = {},
+  seed, count, measuresPerExercise = 20, meters, allowedTags = [], boosts = {},
   wideBias = 0.4, mixedSig = false
 }) {
   const rng = mulberry32(seed);
@@ -169,13 +182,15 @@ export function generateExercises({
 
   for (let e = 0; e < count; e++) {
     const exerciseSig = pickWeighted(rng, sigs, weights);
+    const exerciseBoosts = exercisePersonality(rng, allowedTags, boosts);
+    const exerciseWideBias = Math.min(0.9, Math.max(0.08, wideBias * (0.55 + rng() * 0.9)));
     const measures = [];
     const seen = new Set(); // evita repetir el mismo compas dentro de un ejercicio
     let guard = 0;
     while (measures.length < measuresPerExercise && guard < measuresPerExercise * 40) {
       guard++;
       const sig = mixedSig ? pickWeighted(rng, sigs, weights) : exerciseSig;
-      const content = genContent(rng, sig, allowedSet, boosts, wideBias);
+      const content = genContent(rng, sig, allowedSet, exerciseBoosts, exerciseWideBias);
       const key = `${sig.join('/')}::${fingerprint(content)}`;
       if (seen.has(key) && guard < measuresPerExercise * 30) continue;
       seen.add(key);

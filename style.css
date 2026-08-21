@@ -1,0 +1,261 @@
+:root {
+  --bg: #f4f2fb;
+  --card-bg: #ffffff;
+  --text: #2c2a3a;
+  --text-soft: #6b6880;
+  --accent: #6c4cd6;
+  --accent-2: #ff8a5c;
+  --line: #d9d5ea;
+  --shadow: 0 6px 18px rgba(60, 40, 120, 0.12);
+  --radius: 18px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171522;
+    --card-bg: #221f30;
+    --text: #f1efff;
+    --text-soft: #a6a1c2;
+    --line: #3a3650;
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', system-ui, sans-serif;
+}
+
+h1, h2, .level-num, .btn {
+  font-family: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+}
+
+.app-header {
+  background: linear-gradient(120deg, var(--accent), #9c7cf0);
+  color: #fff;
+  padding: 18px 20px;
+}
+
+.app-header-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo { font-size: 2.4rem; line-height: 1; }
+
+.app-header h1 { margin: 0; font-size: 1.7rem; font-weight: 800; }
+.tagline { margin: 2px 0 0; opacity: 0.9; font-size: 0.95rem; }
+
+main#app {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 22px 16px 40px;
+}
+
+.app-footer {
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  padding: 10px 16px 26px;
+}
+
+/* --- Pantalla de niveles --- */
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.level-card {
+  --lvl-color: #6c4cd6;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  padding: 16px 14px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 6px solid var(--lvl-color);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  color: var(--text);
+}
+
+.level-card:hover, .level-card:focus-visible {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 22px rgba(60, 40, 120, 0.2);
+}
+
+.level-num {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--lvl-color);
+}
+
+.level-label { font-weight: 700; }
+.level-resumen { font-size: 0.85rem; color: var(--text-soft); }
+
+/* --- Pantalla de nivel --- */
+
+.level-view { --lvl-color: #6c4cd6; }
+
+.level-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.level-toolbar h2 { margin: 0; font-size: 1.4rem; }
+.level-toolbar-resumen {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--lvl-color);
+  vertical-align: middle;
+}
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-back {
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.btn-play {
+  background: var(--lvl-color, var(--accent));
+  color: #fff;
+  box-shadow: var(--shadow);
+  font-size: 1.1rem;
+  padding: 12px 26px;
+}
+
+.btn-play.playing { background: var(--accent-2); }
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+
+.control { display: flex; flex-direction: column; gap: 4px; font-size: 0.92rem; font-weight: 600; }
+.tempo-control { min-width: 190px; }
+.tempo-control input[type="range"] { width: 100%; accent-color: var(--lvl-color, var(--accent)); }
+
+.switch-control {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.switch-control input[type="checkbox"] {
+  width: 20px; height: 20px;
+  accent-color: var(--lvl-color, var(--accent));
+}
+
+.staff-container {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 18px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 660px;
+  margin: 0 auto;
+}
+
+.measure-row { width: 100%; }
+.measure-svg { width: 100%; height: auto; display: block; }
+
+.staff-line { stroke: var(--text); stroke-width: 1.6; opacity: 0.55; }
+.barline { stroke: var(--text); stroke-width: 2; opacity: 0.7; }
+.measure-number { font-size: 11px; fill: var(--text-soft); font-family: 'Nunito', sans-serif; }
+
+.notehead-filled { fill: var(--text); stroke: none; }
+.notehead-open { fill: var(--card-bg); stroke: var(--text); stroke-width: 1.6; }
+.stem { stroke: var(--text); stroke-width: 1.8; }
+.beam { fill: var(--text); }
+.flag { fill: none; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; }
+.dot { fill: var(--text); }
+.rest, .rest-flag { fill: var(--text); }
+.rest-stem { stroke: var(--text); stroke-width: 1.8; }
+.hitbox { fill: transparent; }
+
+.token.active .notehead-filled,
+.token.active .beam,
+.token.active .dot { fill: var(--accent-2); }
+.token.active .notehead-open,
+.token.active .stem,
+.token.active .flag { stroke: var(--accent-2); }
+.token.active .rest,
+.token.active .rest-flag { fill: var(--accent-2); }
+.token.active .rest-stem { stroke: var(--accent-2); }
+.token.active .hitbox {
+  fill: var(--accent-2);
+  opacity: 0.14;
+  rx: 8;
+}
+
+/* --- Leyenda --- */
+
+.legend {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px;
+}
+
+.legend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 68px;
+}
+
+.legend-item svg.glyph-svg { width: 34px; height: 52px; }
+.legend-item span:last-child {
+  font-size: 0.68rem;
+  text-align: center;
+  color: var(--text-soft);
+  line-height: 1.1;
+}
+
+@media (max-width: 480px) {
+  .app-header h1 { font-size: 1.35rem; }
+  .controls { gap: 14px; padding: 12px; }
+  .btn-play { width: 100%; }
+}

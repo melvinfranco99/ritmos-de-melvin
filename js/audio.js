@@ -1,5 +1,4 @@
-// Motor de audio: instrumentos de percusion sintetizados (caja, bombo,
-// hi-hat/ride, toms, crash) + metronomo + reproduccion de un ejercicio.
+// Motor de audio: caja (snare) sintetizada + metronomo + reproduccion de un ejercicio.
 
 let ctx = null;
 let master = null;
@@ -18,7 +17,7 @@ let noiseBuffer = null;
 function getNoiseBuffer() {
   if (!noiseBuffer) {
     const c = getCtx();
-    const len = c.sampleRate * 1.2;
+    const len = c.sampleRate * 0.25;
     noiseBuffer = c.createBuffer(1, len, c.sampleRate);
     const data = noiseBuffer.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
@@ -61,61 +60,6 @@ function scheduleSnare(time, nodes) {
   body.start(time);
   body.stop(time + 0.1);
   nodes.push(body);
-}
-
-function scheduleKick(time, nodes) {
-  const c = getCtx();
-  const osc = c.createOscillator();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(150, time);
-  osc.frequency.exponentialRampToValueAtTime(45, time + 0.22);
-  const gain = c.createGain();
-  gain.gain.setValueAtTime(0.9, time);
-  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.26);
-  osc.connect(gain);
-  gain.connect(master);
-  osc.start(time);
-  osc.stop(time + 0.3);
-  nodes.push(osc);
-
-  noiseBurst(time, 0.02, 'bandpass', 1800, 0.35, nodes, 0.8);
-}
-
-function scheduleHihat(time, nodes, open = false) {
-  noiseBurst(time, open ? 0.3 : 0.075, 'highpass', 7500, 0.45, nodes);
-}
-
-function scheduleCrash(time, nodes) {
-  noiseBurst(time, 1.1, 'highpass', 3500, 0.5, nodes);
-}
-
-function scheduleTom(freqStart, freqEnd, time, nodes) {
-  const c = getCtx();
-  const osc = c.createOscillator();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(freqStart, time);
-  osc.frequency.exponentialRampToValueAtTime(freqEnd, time + 0.22);
-  const gain = c.createGain();
-  gain.gain.setValueAtTime(0.7, time);
-  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
-  osc.connect(gain);
-  gain.connect(master);
-  osc.start(time);
-  osc.stop(time + 0.3);
-  nodes.push(osc);
-}
-
-function scheduleHit(instrument, time, nodes) {
-  switch (instrument) {
-    case 'kick': return scheduleKick(time, nodes);
-    case 'hihat': return scheduleHihat(time, nodes);
-    case 'crash': return scheduleCrash(time, nodes);
-    case 'tom1': return scheduleTom(230, 165, time, nodes);
-    case 'tom2': return scheduleTom(165, 120, time, nodes);
-    case 'tom3': return scheduleTom(115, 82, time, nodes);
-    case 'snare':
-    default: return scheduleSnare(time, nodes);
-  }
 }
 
 function scheduleClick(time, accent, nodes) {
@@ -181,7 +125,7 @@ export class Player {
 
     events.forEach(ev => {
       if (ev.kind === 'note') {
-        scheduleHit(ev.instrument, startTime + ev.absStart * secPerBeat, nodes);
+        scheduleSnare(startTime + ev.absStart * secPerBeat, nodes);
       }
     });
 

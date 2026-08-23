@@ -1,9 +1,6 @@
 import { LEVELS } from './levels.js';
-import { DRUM_LEVELS } from './drum-levels.js';
 import { NOTE, REST } from './notes.js';
 import { renderExercise, renderGlyph } from './notation.js';
-import { renderDrumExercise, renderInstrumentGlyph } from './drum-notation.js';
-import { INSTRUMENTS, INSTRUMENT_ORDER } from './drum-instruments.js';
 import { Player } from './audio.js';
 
 const app = document.getElementById('app');
@@ -15,25 +12,6 @@ const LEGEND = [
   NOTE.fusa(), NOTE.fusa(true), REST.negra(), REST.corchea()
 ];
 
-const SECTIONS = {
-  ritmos: {
-    key: 'ritmos',
-    label: 'Lectura ritmica',
-    icon: '🎯',
-    resumen: 'Practica de lectura ritmica por niveles, con caja y metronomo.',
-    levels: LEVELS,
-    renderFn: renderExercise
-  },
-  bateria: {
-    key: 'bateria',
-    label: 'Bateria',
-    icon: '🥁',
-    resumen: 'Patrones de bateria por niveles: bombo, caja, hi-hat, toms y crash.',
-    levels: DRUM_LEVELS,
-    renderFn: renderDrumExercise
-  }
-};
-
 function go(hash) {
   window.location.hash = hash;
 }
@@ -42,24 +20,25 @@ function sigLabel(sig) {
   return sig ? `${sig[0]}/${sig[1]}` : 'Mixto';
 }
 
-function findLevel(section, id) {
-  return section.levels.find(l => l.id === id);
+function findLevel(id) {
+  return LEVELS.find(l => l.id === id);
 }
 
 function renderHome() {
   app.innerHTML = '';
   const grid = document.createElement('div');
-  grid.className = 'section-grid';
+  grid.className = 'level-grid';
 
-  Object.values(SECTIONS).forEach(sec => {
+  LEVELS.forEach(lvl => {
     const card = document.createElement('button');
-    card.className = 'section-card';
+    card.className = 'level-card';
+    card.style.setProperty('--lvl-color', lvl.color);
     card.innerHTML = `
-      <span class="section-icon">${sec.icon}</span>
-      <span class="section-label">${sec.label}</span>
-      <span class="section-resumen">${sec.resumen}</span>
+      <span class="level-num">${lvl.id}</span>
+      <span class="level-label">Nivel ${lvl.id}</span>
+      <span class="level-resumen">${lvl.resumen}</span>
     `;
-    card.addEventListener('click', () => go(`#/${sec.key}`));
+    card.addEventListener('click', () => go(`#/nivel/${lvl.id}`));
     grid.appendChild(card);
   });
 
@@ -81,60 +60,10 @@ function buildLegend(container) {
   });
 }
 
-function buildInstrumentLegend(container, instrumentIds) {
-  container.innerHTML = '';
-  instrumentIds.forEach(id => {
-    const inst = INSTRUMENTS[id];
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    item.appendChild(svg);
-    renderInstrumentGlyph(svg, inst.shape);
-    const label = document.createElement('span');
-    label.textContent = inst.label;
-    item.appendChild(label);
-    container.appendChild(item);
-  });
-}
-
-function renderLevelGridView(sectionKey) {
+function renderExerciseListView(levelId) {
   player.stop();
-  const section = SECTIONS[sectionKey];
-  if (!section) { go('#/'); return; }
-
-  app.innerHTML = '';
-  const view = document.createElement('div');
-  view.innerHTML = `
-    <div class="level-toolbar">
-      <button class="btn btn-back" id="btn-back">&larr; Inicio</button>
-      <h2>${section.icon} ${section.label}</h2>
-    </div>
-    <div class="level-grid" id="level-grid"></div>
-  `;
-  app.appendChild(view);
-
-  document.getElementById('btn-back').addEventListener('click', () => go('#/'));
-
-  const grid = document.getElementById('level-grid');
-  section.levels.forEach(lvl => {
-    const card = document.createElement('button');
-    card.className = 'level-card';
-    card.style.setProperty('--lvl-color', lvl.color);
-    card.innerHTML = `
-      <span class="level-num">${lvl.id}</span>
-      <span class="level-label">Nivel ${lvl.id}</span>
-      <span class="level-resumen">${lvl.resumen}</span>
-    `;
-    card.addEventListener('click', () => go(`#/${section.key}/nivel/${lvl.id}`));
-    grid.appendChild(card);
-  });
-}
-
-function renderExerciseListView(sectionKey, levelId) {
-  player.stop();
-  const section = SECTIONS[sectionKey];
-  const lvl = section && findLevel(section, levelId);
-  if (!section || !lvl) { go('#/'); return; }
+  const lvl = findLevel(levelId);
+  if (!lvl) { go('#/'); return; }
 
   app.innerHTML = '';
   const view = document.createElement('div');
@@ -143,13 +72,13 @@ function renderExerciseListView(sectionKey, levelId) {
   view.innerHTML = `
     <div class="level-toolbar">
       <button class="btn btn-back" id="btn-back">&larr; Niveles</button>
-      <h2>${section.icon} Nivel ${lvl.id} <span class="level-toolbar-resumen">${lvl.resumen}</span></h2>
+      <h2>Nivel ${lvl.id} <span class="level-toolbar-resumen">${lvl.resumen}</span></h2>
     </div>
     <div class="exercise-grid" id="exercise-grid"></div>
   `;
   app.appendChild(view);
 
-  document.getElementById('btn-back').addEventListener('click', () => go(`#/${section.key}`));
+  document.getElementById('btn-back').addEventListener('click', () => go('#/'));
 
   const grid = document.getElementById('exercise-grid');
   lvl.exercises.forEach((ex, i) => {
@@ -160,18 +89,17 @@ function renderExerciseListView(sectionKey, levelId) {
       <span class="exercise-title">${ex.title}</span>
       <span class="exercise-meta">${sigLabel(ex.sig)} · ${ex.measures.length} compases</span>
     `;
-    card.addEventListener('click', () => go(`#/${section.key}/nivel/${lvl.id}/ejercicio/${i + 1}`));
+    card.addEventListener('click', () => go(`#/nivel/${lvl.id}/ejercicio/${i + 1}`));
     grid.appendChild(card);
   });
 }
 
-function renderExerciseView(sectionKey, levelId, exerciseNum) {
+function renderExerciseView(levelId, exerciseNum) {
   player.stop();
-  const section = SECTIONS[sectionKey];
-  const lvl = section && findLevel(section, levelId);
+  const lvl = findLevel(levelId);
   const exIndex = exerciseNum - 1;
   const exercise = lvl && lvl.exercises[exIndex];
-  if (!section || !lvl || !exercise) { go(`#/${sectionKey}/nivel/${levelId}`); return; }
+  if (!lvl || !exercise) { go(`#/nivel/${levelId}`); return; }
 
   app.innerHTML = '';
   const view = document.createElement('div');
@@ -201,21 +129,16 @@ function renderExerciseView(sectionKey, levelId, exerciseNum) {
 
     <div class="staff-container" id="staff"><div class="staff-grid" id="staff-grid"></div></div>
 
-    ${section.key === 'bateria' ? '<div class="legend" id="instrument-legend"></div>' : ''}
     <div class="legend" id="legend"></div>
   `;
   app.appendChild(view);
 
-  document.getElementById('btn-back').addEventListener('click', () => go(`#/${section.key}/nivel/${lvl.id}`));
+  document.getElementById('btn-back').addEventListener('click', () => go(`#/nivel/${lvl.id}`));
 
   const staffGrid = document.getElementById('staff-grid');
-  const { events, totalBeats, clickBeats } = section.renderFn(staffGrid, exercise.measures);
+  const { events, totalBeats, clickBeats } = renderExercise(staffGrid, exercise.measures);
 
   buildLegend(document.getElementById('legend'));
-  if (section.key === 'bateria') {
-    const used = INSTRUMENT_ORDER.filter(id => exercise.measures[0].lanes[id]);
-    buildInstrumentLegend(document.getElementById('instrument-legend'), used);
-  }
 
   const bpmRange = document.getElementById('bpm-range');
   const bpmLabel = document.getElementById('bpm-label');
@@ -268,15 +191,12 @@ function renderExerciseView(sectionKey, levelId, exerciseNum) {
 
 function route() {
   const hash = window.location.hash;
-  const exerciseMatch = hash.match(/^#\/(\w+)\/nivel\/(\d+)\/ejercicio\/(\d+)/);
-  const levelMatch = hash.match(/^#\/(\w+)\/nivel\/(\d+)/);
-  const sectionMatch = hash.match(/^#\/(\w+)/);
+  const exerciseMatch = hash.match(/^#\/nivel\/(\d+)\/ejercicio\/(\d+)/);
+  const levelMatch = hash.match(/^#\/nivel\/(\d+)/);
   if (exerciseMatch) {
-    renderExerciseView(exerciseMatch[1], Number(exerciseMatch[2]), Number(exerciseMatch[3]));
+    renderExerciseView(Number(exerciseMatch[1]), Number(exerciseMatch[2]));
   } else if (levelMatch) {
-    renderExerciseListView(levelMatch[1], Number(levelMatch[2]));
-  } else if (sectionMatch && SECTIONS[sectionMatch[1]]) {
-    renderLevelGridView(sectionMatch[1]);
+    renderExerciseListView(Number(levelMatch[1]));
   } else {
     player.stop();
     renderHome();

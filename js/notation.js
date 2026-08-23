@@ -2,8 +2,12 @@ import { normalizeMeasure, measureOf, contentBeats, pulsesForSig } from './notes
 
 export const SVGNS = 'http://www.w3.org/2000/svg';
 
-// Geometria del pentagrama de una sola linea (compartida con el pentagrama de bateria)
+// Geometria del pentagrama de una sola linea. Todos los compases ocupan el
+// mismo ancho de "caja" (como en una partitura profesional): el ancho por
+// tiempo se recalcula por compas para que su contenido llene siempre el
+// mismo espacio, sea cual sea su indicador de compas.
 export const BEAT_WIDTH = 110;
+export const REF_BEATS = 4; // compas de referencia (4/4) que define el ancho estandar
 export const PAD_LEFT = 34;
 export const PAD_RIGHT = 26;
 export const SIG_PAD = 34;
@@ -65,13 +69,6 @@ export function drawNotehead(g, x, y, filled) {
     transform: `rotate(-18 ${x} ${y})`
   });
   g.appendChild(head);
-}
-
-// Cabeza en forma de "x", usada para platillos (hi-hat, ride, crash)
-export function drawXNotehead(g, x, y) {
-  const s = 5.6;
-  g.appendChild(el('line', { x1: x - s, y1: y - s, x2: x + s, y2: y + s, class: 'notehead-x' }));
-  g.appendChild(el('line', { x1: x - s, y1: y + s, x2: x + s, y2: y - s, class: 'notehead-x' }));
 }
 
 export function drawDot(g, x, y) {
@@ -141,20 +138,21 @@ function drawTuplet(svg, tokens, xs) {
   }
 }
 
-function measureWidth(content, extraLeft = 0) {
-  const beats = contentBeats(content);
-  return PAD_LEFT + extraLeft + PAD_RIGHT + beats * BEAT_WIDTH;
-}
-
 /**
  * Dibuja un compas dentro de un <svg> ya creado. Devuelve la lista de elementos
  * {el, start, dur} en orden, para sincronizar el resaltado durante la reproduccion.
+ * Todos los compases (tengan el compas que tengan) ocupan el mismo ancho de
+ * contenido: el ancho por tiempo (beatWidth) se ajusta para que quepan
+ * exactamente sus tiempos en ese espacio fijo, como en una partitura editada
+ * a mano con compases de anchura regular.
  */
-export function renderMeasure(svg, measure, { number, showSig } = {}) {
+export function renderMeasure(svg, measure, { number, showSig, isLast } = {}) {
   const { sig, content } = measureOf(measure);
   const groups = normalizeMeasure(content);
+  const totalBeats = contentBeats(content);
+  const beatWidth = (REF_BEATS * BEAT_WIDTH) / totalBeats;
   const extraLeft = showSig ? SIG_PAD : 0;
-  const width = measureWidth(content, extraLeft);
+  const width = PAD_LEFT + extraLeft + PAD_RIGHT + REF_BEATS * BEAT_WIDTH;
   const height = 104;
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('class', 'measure-svg');
@@ -163,9 +161,15 @@ export function renderMeasure(svg, measure, { number, showSig } = {}) {
 
   // Linea del pentagrama
   svg.appendChild(el('line', { x1: 2, y1: LINE_Y, x2: width - 2, y2: LINE_Y, class: 'staff-line' }));
-  // Barras de compas
+  // Barra inicial
   svg.appendChild(el('line', { x1: 2, y1: LINE_Y - 26, x2: 2, y2: LINE_Y + 26, class: 'barline' }));
-  svg.appendChild(el('line', { x1: width - 2, y1: LINE_Y - 26, x2: width - 2, y2: LINE_Y + 26, class: 'barline' }));
+  // Barra final: doble (fina + gruesa) solo en el ultimo compas del ejercicio
+  if (isLast) {
+    svg.appendChild(el('line', { x1: width - 9, y1: LINE_Y - 26, x2: width - 9, y2: LINE_Y + 26, class: 'barline' }));
+    svg.appendChild(el('rect', { x: width - 6, y: LINE_Y - 26, width: 3.4, height: 52, class: 'barline-thick' }));
+  } else {
+    svg.appendChild(el('line', { x1: width - 2, y1: LINE_Y - 26, x2: width - 2, y2: LINE_Y + 26, class: 'barline' }));
+  }
 
   if (number != null) {
     svg.appendChild(el('text', { x: 4, y: 16, class: 'measure-number' })).textContent = number;
@@ -176,7 +180,7 @@ export function renderMeasure(svg, measure, { number, showSig } = {}) {
 
   const events = [];
   let cursorBeat = 0;
-  const xOf = beat => PAD_LEFT + extraLeft + beat * BEAT_WIDTH;
+  const xOf = beat => PAD_LEFT + extraLeft + beat * beatWidth;
 
   groups.forEach(group => {
     const tokens = group.tokens;
@@ -209,7 +213,7 @@ export function renderMeasure(svg, measure, { number, showSig } = {}) {
 
       // area clicable/resaltable un poco mas ancha que la nota
       const hit = el('rect', {
-        x: x - 14, y: LINE_Y - 34, width: Math.max(28, tok.beats * BEAT_WIDTH), height: 52,
+        x: x - 14, y: LINE_Y - 34, width: Math.max(28, tok.beats * beatWidth), height: 52,
         class: 'hitbox'
       });
       g.insertBefore(hit, g.firstChild);
@@ -295,7 +299,7 @@ export function renderExercise(container, measures) {
     wrapper.appendChild(svg);
     container.appendChild(wrapper);
 
-    const events = renderMeasure(svg, measure, { number: i + 1, showSig });
+    const events = renderMeasure(svg, measure, { number: i + 1, showSig, isLast: i === measures.length - 1 });
     events.forEach(ev => {
       allEvents.push({ el: ev.el, absStart: absBeat + ev.start, dur: ev.dur, kind: ev.kind });
     });

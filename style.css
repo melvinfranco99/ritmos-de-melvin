@@ -68,41 +68,6 @@ main#app {
   padding: 10px 16px 26px;
 }
 
-/* --- Pantalla de inicio: eleccion de seccion --- */
-
-.section-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 18px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.section-card {
-  border: none;
-  border-radius: var(--radius);
-  background: var(--card-bg);
-  box-shadow: var(--shadow);
-  padding: 28px 20px;
-  cursor: pointer;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: var(--text);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.section-card:hover, .section-card:focus-visible {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 10px 22px rgba(60, 40, 120, 0.2);
-}
-
-.section-icon { font-size: 2.8rem; }
-.section-label { font-weight: 800; font-size: 1.2rem; }
-.section-resumen { font-size: 0.85rem; color: var(--text-soft); }
-
 /* --- Pantalla de niveles --- */
 
 .level-grid {
@@ -272,17 +237,19 @@ main#app {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 10px 24px;
+  justify-content: center;
+  gap: 10px 28px;
 }
 
-/* Tamano fijo: todos los pentagramas se ven igual de grandes sin importar el
-   compas. Si un compas es mas ancho que la pantalla, se puede desplazar en
-   horizontal (staff-container) en vez de encogerse de forma distinta a los demas. */
-.measure-row { flex: 0 0 auto; }
-.measure-svg { display: block; }
+/* Todos los compases miden lo mismo (misma caja), asi que si hace falta
+   encoger para caber en pantallas pequenas, se encogen todos por igual:
+   nunca se ve un compas mas grande que otro. */
+.measure-row { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.measure-svg { display: block; max-width: 100%; height: auto; }
 
 .staff-line { stroke: var(--text); stroke-width: 1.6; opacity: 0.55; }
 .barline { stroke: var(--text); stroke-width: 2; opacity: 0.7; }
+.barline-thick { fill: var(--text); opacity: 0.85; }
 .measure-number { font-size: 9px; fill: var(--text-soft); opacity: 0.6; font-family: 'Nunito', sans-serif; }
 .time-sig { font-size: 22px; font-weight: 800; fill: var(--text); font-family: 'Baloo 2', sans-serif; }
 .tuplet-number { font-size: 14px; font-weight: 800; font-style: italic; fill: var(--lvl-color, var(--accent)); font-family: 'Nunito', sans-serif; }
@@ -290,9 +257,6 @@ main#app {
 
 .notehead-filled { fill: var(--text); stroke: none; }
 .notehead-open { fill: var(--card-bg); stroke: var(--text); stroke-width: 1.6; }
-.notehead-x { stroke: var(--text); stroke-width: 2.2; stroke-linecap: round; }
-.token.active .notehead-x { stroke: var(--accent-2); }
-.drum-line { opacity: 0.4; }
 .stem { stroke: var(--text); stroke-width: 1.8; }
 .beam { fill: var(--text); }
 .flag { fill: none; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; }

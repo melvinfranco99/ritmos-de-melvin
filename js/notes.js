@@ -1,5 +1,5 @@
 // Modelo de figuras ritmicas. Todas las duraciones estan en "negras" (1 negra = 1 beat).
-// base: 4 redonda, 2 blanca, 1 negra, 0.5 corchea, 0.25 semicorchea, 0.125 fusa
+// base: 4 redonda, 2 blanca, 1 negra, 0.5 corchea, 0.25 semicorchea
 
 function makeToken(kind, base, dotted, label) {
   return {
@@ -16,8 +16,7 @@ export const NOTE = {
   blanca: (d = false) => makeToken('note', 2, d, d ? 'blanca con puntillo' : 'blanca'),
   negra: (d = false) => makeToken('note', 1, d, d ? 'negra con puntillo' : 'negra'),
   corchea: (d = false) => makeToken('note', 0.5, d, d ? 'corchea con puntillo' : 'corchea'),
-  semicorchea: (d = false) => makeToken('note', 0.25, d, d ? 'semicorchea con puntillo' : 'semicorchea'),
-  fusa: (d = false) => makeToken('note', 0.125, d, d ? 'fusa con puntillo' : 'fusa')
+  semicorchea: (d = false) => makeToken('note', 0.25, d, d ? 'semicorchea con puntillo' : 'semicorchea')
 };
 
 export const REST = {
@@ -25,8 +24,7 @@ export const REST = {
   blanca: (d = false) => makeToken('rest', 2, d, 'silencio de blanca'),
   negra: (d = false) => makeToken('rest', 1, d, 'silencio de negra'),
   corchea: (d = false) => makeToken('rest', 0.5, d, 'silencio de corchea'),
-  semicorchea: (d = false) => makeToken('rest', 0.25, d, 'silencio de semicorchea'),
-  fusa: (d = false) => makeToken('rest', 0.125, d, 'silencio de fusa')
+  semicorchea: (d = false) => makeToken('rest', 0.25, d, 'silencio de semicorchea')
 };
 
 // Atajos cortos para autoria de niveles
@@ -35,14 +33,12 @@ export const H = NOTE.blanca;
 export const Q = NOTE.negra;
 export const E = NOTE.corchea;
 export const S = NOTE.semicorchea;
-export const F = NOTE.fusa;
 
 export const rW = REST.redonda;
 export const rH = REST.blanca;
 export const rQ = REST.negra;
 export const rE = REST.corchea;
 export const rS = REST.semicorchea;
-export const rF = REST.fusa;
 
 // Agrupa tokens que deben unirse con barra si su duracion lo permite (corchea o menor)
 export function beam(...tokens) {

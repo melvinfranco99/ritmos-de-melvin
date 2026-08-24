@@ -1,7 +1,7 @@
 // Generador determinista de ejercicios. Con la misma seed siempre produce el
 // mismo resultado, para que la web sea estable entre visitas y se pueda
 // validar (los compases siempre cuadran con su indicador de compas).
-import { W, H, Q, E, S, F, rQ, rE, beam, trH, trQ, trE, trS, EIGHT_GROUPING } from './notes.js';
+import { W, H, Q, E, S, rQ, rE, beam, trH, trQ, trE, trS, EIGHT_GROUPING } from './notes.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -52,7 +52,6 @@ const CELLS_1 = [
   cell(() => [beam(S(), S(), E())], ['mixedEighthSixteenth']),
   cell(() => [beam(E(true), S())], ['dottedEighth']),
   cell(() => [beam(S(), E(true))], ['dottedEighth']),
-  cell(() => [beam(F(), F(), F(), F(), F(), F(), F(), F())], ['fusa']),
   cell(() => [trE()], ['tripletQE']),
   cell(() => [trE(['note', 'note', 'rest'])], ['tripletQE']),
   cell(() => [trE(['note', 'rest', 'note'])], ['tripletQE']),
@@ -69,7 +68,6 @@ const CELLS_1_5 = [
   cell(() => [E(), beam(S(), S(), S(), S())], ['sixteenth']),
   cell(() => [rE(), beam(E(), E())], ['eighth']),
   cell(() => [beam(E(), E()), rE()], ['eighth']),
-  cell(() => [beam(F(), F(), F(), F(), F(), F(), F(), F()), E()], ['fusa']),
   cell(() => [trS(), trS(), trS()], ['tripletS']),
   cell(() => [trE(), E()], ['tripletQE']),
   cell(() => [E(), trE()], ['tripletQE'])
@@ -153,9 +151,9 @@ function fingerprint(content) {
 }
 
 // Cada ejercicio recibe una "personalidad" propia: algunos insisten mas en
-// tresillos, otros en fusas, otros en sincopas... para que se note la
-// diferencia entre ejercicios de un mismo nivel, sobre todo en los niveles
-// con mas figuras desbloqueadas.
+// tresillos, otros en sincopas... para que se note la diferencia entre
+// ejercicios de un mismo nivel, sobre todo en los niveles con mas figuras
+// desbloqueadas.
 function exercisePersonality(rng, allowedTags, boosts) {
   const personal = {};
   allowedTags.forEach(tag => {

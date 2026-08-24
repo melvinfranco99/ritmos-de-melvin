@@ -1,12 +1,13 @@
 import { generateExercises } from './generator.js';
 
 // Progresion: redonda/blanca/negra -> corcheas -> puntillo -> semicorcheas ->
-// tresillos y compases nuevos (3/4, 6/8...) -> fusas -> mezcla final.
+// tresillos y compases nuevos (3/4, 6/8...) -> mezcla final.
 //
 // Cada nivel se compone de "ejercicios" independientes (>= 25 compases cada
 // uno), generados de forma determinista (misma seed => mismo resultado
-// siempre). Cada ejercicio mantiene un unico compas de principio a fin,
-// excepto en el nivel 10 (mixedSig), donde puede cambiar entre compases.
+// siempre). Todo ejercicio, incluido el nivel 10, mantiene un unico compas
+// de principio a fin: lo que varia entre niveles altos es que cada ejercicio
+// puede tener un compas distinto (uno entero en 4/4, otro en 7/4...).
 
 export const LEVELS = [
   {
@@ -98,16 +99,16 @@ export const LEVELS = [
   {
     id: 8,
     color: '#e35a4d',
-    resumen: '50 ejercicios: fusas, tresillos y compases de 3/4 y 6/8',
+    resumen: '50 ejercicios: tresillos y compases de 3/4 y 6/8',
     exercises: generateExercises({
       seed: 800008,
       count: 50,
       meters: [{ sig: [4, 4], w: 0.5 }, { sig: [3, 4], w: 0.3 }, { sig: [6, 8], w: 0.2 }],
       allowedTags: [
         'eighth', 'dotted', 'sixteenth', 'tripletQE', 'mixedEighthSixteenth', 'tripletS',
-        'dottedEighth', 'fusa'
+        'dottedEighth'
       ],
-      boosts: { tripletQE: 1, tripletS: 1, fusa: 0.8 },
+      boosts: { tripletQE: 1, tripletS: 1 },
       wideBias: 0.25
     })
   },
@@ -124,9 +125,9 @@ export const LEVELS = [
       ],
       allowedTags: [
         'eighth', 'dotted', 'sixteenth', 'tripletQE', 'mixedEighthSixteenth', 'tripletS',
-        'dottedEighth', 'fusa'
+        'dottedEighth'
       ],
-      boosts: { tripletQE: 1.4, tripletS: 1.4, fusa: 1.1 },
+      boosts: { tripletQE: 1.4, tripletS: 1.4 },
       wideBias: 0.22
     })
   },
@@ -144,11 +145,10 @@ export const LEVELS = [
       ],
       allowedTags: [
         'eighth', 'dotted', 'sixteenth', 'tripletQE', 'mixedEighthSixteenth', 'tripletS',
-        'dottedEighth', 'fusa', 'tripletH'
+        'dottedEighth', 'tripletH'
       ],
-      boosts: { tripletQE: 2, tripletS: 2, tripletH: 1.5, fusa: 1.4 },
-      wideBias: 0.2,
-      mixedSig: true
+      boosts: { tripletQE: 2, tripletS: 2, tripletH: 1.5 },
+      wideBias: 0.2
     })
   }
 ];

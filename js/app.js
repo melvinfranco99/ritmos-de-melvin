@@ -9,7 +9,7 @@ const player = new Player();
 const LEGEND = [
   NOTE.redonda(), NOTE.blanca(), NOTE.blanca(true), NOTE.negra(), NOTE.negra(true),
   NOTE.corchea(), NOTE.corchea(true), NOTE.semicorchea(), NOTE.semicorchea(true),
-  NOTE.fusa(), NOTE.fusa(true), REST.negra(), REST.corchea()
+  REST.negra(), REST.corchea()
 ];
 
 function go(hash) {

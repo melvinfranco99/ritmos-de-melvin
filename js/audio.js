@@ -108,7 +108,7 @@ function scheduleCountVoice(time, n, buffers, nodes) {
   const src = c.createBufferSource();
   src.buffer = buf;
   const gain = c.createGain();
-  gain.gain.value = 0.85;
+  gain.gain.value = 0.65;
   src.connect(gain);
   gain.connect(master);
   src.start(time);

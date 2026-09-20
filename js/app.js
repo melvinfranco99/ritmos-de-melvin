@@ -119,9 +119,14 @@ function renderExerciseView(levelId, exerciseNum) {
         <input type="range" id="bpm-range" min="40" max="160" value="80" step="1" />
       </label>
 
-      <label class="control switch-control">
-        <input type="checkbox" id="metronome-toggle" />
+      <label class="control select-control">
         <span>Metronomo</span>
+        <select id="metronome-mode">
+          <option value="off">Apagado</option>
+          <option value="click" selected>Clic</option>
+          <option value="voice">Voz (1, 2, 3…)</option>
+          <option value="both">Clic + voz</option>
+        </select>
       </label>
 
       <div class="count-in" id="count-in" aria-live="polite"></div>
@@ -144,7 +149,7 @@ function renderExerciseView(levelId, exerciseNum) {
   const bpmLabel = document.getElementById('bpm-label');
   bpmRange.addEventListener('input', () => { bpmLabel.textContent = bpmRange.value; });
 
-  const metronomeToggle = document.getElementById('metronome-toggle');
+  const metronomeMode = document.getElementById('metronome-mode');
   const playBtn = document.getElementById('btn-play');
   const countInEl = document.getElementById('count-in');
 
@@ -174,7 +179,7 @@ function renderExerciseView(levelId, exerciseNum) {
       totalBeats,
       clickBeats,
       bpm: Number(bpmRange.value),
-      metronome: metronomeToggle.checked,
+      metronomeMode: metronomeMode.value,
       onNoteChange: setActive,
       onCountIn: beat => {
         if (beat === -1) {

@@ -79,6 +79,30 @@ function scheduleClick(time, accent, nodes) {
 
 const COUNT_IN_BEATS = 4;
 
+// --- Voz de fondo que cuenta los pulsos ("one", "two"...) sobre cada pitido ---
+const COUNT_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+
+let cachedVoice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  cachedVoice = voices.find(v => /en-US/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang)) || voices[0];
+  return cachedVoice;
+}
+
+function speakCount(n) {
+  if (!('speechSynthesis' in window)) return;
+  const utter = new SpeechSynthesisUtterance(COUNT_WORDS[n - 1] || String(n));
+  utter.lang = 'en-US';
+  utter.rate = 1.1;
+  utter.pitch = 1;
+  utter.volume = 0.55;
+  const voice = cachedVoice || pickVoice();
+  if (voice) utter.voice = voice;
+  window.speechSynthesis.speak(utter);
+}
+
 export class Player {
   constructor() {
     this.playing = false;
@@ -102,15 +126,19 @@ export class Player {
     const now = ctx ? ctx.currentTime : 0;
     this.nodes.forEach(n => { try { n.stop(now); } catch (e) { /* ya detenido */ } });
     this.nodes = [];
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     if (this.onNoteChange) this.onNoteChange([]);
   }
 
-  play({ events, totalBeats, clickBeats, bpm, metronome, onNoteChange, onEnd, onCountIn }) {
+  play({ events, totalBeats, clickBeats, bpm, metronomeMode, onNoteChange, onEnd, onCountIn }) {
     this.stop();
     const c = getCtx();
     c.resume();
     this.onNoteChange = onNoteChange;
     this.onEnd = onEnd;
+
+    const doClick = metronomeMode === 'click' || metronomeMode === 'both';
+    const doVoice = metronomeMode === 'voice' || metronomeMode === 'both';
 
     const secPerBeat = 60 / bpm;
     const leadIn = 0.12;
@@ -118,6 +146,7 @@ export class Player {
     const nodes = [];
 
     // 4 golpes de metronomo de referencia antes de empezar el ejercicio
+    // (el count-in usa siempre un clic, para marcar el tempo con claridad)
     for (let b = 0; b < COUNT_IN_BEATS; b++) {
       scheduleClick(countInStart + b * secPerBeat, b === 0, nodes);
     }
@@ -129,7 +158,7 @@ export class Player {
       }
     });
 
-    if (metronome) {
+    if (doClick) {
       clickBeats.forEach(cb => scheduleClick(startTime + cb.beat * secPerBeat, cb.accent, nodes));
     }
 
@@ -143,6 +172,25 @@ export class Player {
       }
       const doneId = setTimeout(() => { if (this.playing) onCountIn(-1); }, (leadIn + COUNT_IN_BEATS * secPerBeat) * 1000);
       this.timeouts.push(doneId);
+    }
+
+    // Voz contando cada pulso: "one, two, three, four..." durante el
+    // count-in, y reiniciando en "one" en cada compas durante el ejercicio.
+    // Solo suena si el modo de metronomo elegido incluye voz.
+    if (doVoice) {
+      pickVoice();
+      for (let b = 0; b < COUNT_IN_BEATS; b++) {
+        const id = setTimeout(() => { if (this.playing) speakCount(b + 1); }, (leadIn + b * secPerBeat) * 1000);
+        this.timeouts.push(id);
+      }
+      let pulse = 0;
+      clickBeats.forEach(cb => {
+        pulse = cb.accent ? 1 : pulse + 1;
+        const currentPulse = pulse;
+        const delay = (leadIn + COUNT_IN_BEATS * secPerBeat + cb.beat * secPerBeat) * 1000;
+        const id = setTimeout(() => { if (this.playing) speakCount(currentPulse); }, delay);
+        this.timeouts.push(id);
+      });
     }
 
     const endTime = startTime + totalBeats * secPerBeat;

@@ -123,8 +123,8 @@ function renderExerciseView(levelId, exerciseNum) {
         <span>Metronomo</span>
         <select id="metronome-mode">
           <option value="off">Apagado</option>
-          <option value="click" selected>Clic</option>
-          <option value="voice">Voz (1, 2, 3…)</option>
+          <option value="click">Clic</option>
+          <option value="voice" selected>Voz (1, 2, 3…)</option>
           <option value="both">Clic + voz</option>
         </select>
       </label>

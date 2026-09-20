@@ -79,28 +79,40 @@ function scheduleClick(time, accent, nodes) {
 
 const COUNT_IN_BEATS = 4;
 
-// --- Voz de fondo que cuenta los pulsos ("one", "two"...) sobre cada pitido ---
-const COUNT_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
-
-let cachedVoice = null;
-function pickVoice() {
-  if (!('speechSynthesis' in window)) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  cachedVoice = voices.find(v => /en-US/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang)) || voices[0];
-  return cachedVoice;
+// --- Voz que cuenta los pulsos (clips grabados "one", "two"...) ---
+// Se usan clips de audio pregrabados en vez de speechSynthesis: la API de
+// voz del navegador es asincrona y con latencia variable, por lo que no se
+// puede sincronizar con precision al clic del metronomo. Los clips, en
+// cambio, se programan con el mismo reloj de Web Audio que el clic y las
+// notas, con precision de muestra.
+const COUNT_FILES = 8;
+let countBuffersPromise = null;
+function getCountBuffers() {
+  if (!countBuffersPromise) {
+    const c = getCtx();
+    countBuffersPromise = Promise.all(
+      Array.from({ length: COUNT_FILES }, (_, i) =>
+        fetch(`sounds/count/${i + 1}.wav`)
+          .then(res => res.arrayBuffer())
+          .then(buf => c.decodeAudioData(buf))
+      )
+    );
+  }
+  return countBuffersPromise;
 }
 
-function speakCount(n) {
-  if (!('speechSynthesis' in window)) return;
-  const utter = new SpeechSynthesisUtterance(COUNT_WORDS[n - 1] || String(n));
-  utter.lang = 'en-US';
-  utter.rate = 1.1;
-  utter.pitch = 1;
-  utter.volume = 0.55;
-  const voice = cachedVoice || pickVoice();
-  if (voice) utter.voice = voice;
-  window.speechSynthesis.speak(utter);
+function scheduleCountVoice(time, n, buffers, nodes) {
+  const buf = buffers[n - 1];
+  if (!buf) return;
+  const c = getCtx();
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const gain = c.createGain();
+  gain.gain.value = 0.85;
+  src.connect(gain);
+  gain.connect(master);
+  src.start(time);
+  nodes.push(src);
 }
 
 export class Player {
@@ -111,6 +123,7 @@ export class Player {
     this.rafId = null;
     this.onNoteChange = null;
     this.onEnd = null;
+    this.playToken = 0;
   }
 
   isPlaying() {
@@ -119,6 +132,7 @@ export class Player {
 
   stop() {
     this.playing = false;
+    this.playToken++;
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
     this.timeouts.forEach(t => clearTimeout(t));
@@ -126,12 +140,12 @@ export class Player {
     const now = ctx ? ctx.currentTime : 0;
     this.nodes.forEach(n => { try { n.stop(now); } catch (e) { /* ya detenido */ } });
     this.nodes = [];
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     if (this.onNoteChange) this.onNoteChange([]);
   }
 
-  play({ events, totalBeats, clickBeats, bpm, metronomeMode, onNoteChange, onEnd, onCountIn }) {
+  async play({ events, totalBeats, clickBeats, bpm, metronomeMode, onNoteChange, onEnd, onCountIn }) {
     this.stop();
+    const token = this.playToken;
     const c = getCtx();
     c.resume();
     this.onNoteChange = onNoteChange;
@@ -139,6 +153,8 @@ export class Player {
 
     const doClick = metronomeMode === 'click' || metronomeMode === 'both';
     const doVoice = metronomeMode === 'voice' || metronomeMode === 'both';
+    const countBuffers = doVoice ? await getCountBuffers() : null;
+    if (token !== this.playToken) return; // se detuvo/relanzo mientras cargaban los clips
 
     const secPerBeat = 60 / bpm;
     const leadIn = 0.12;
@@ -146,9 +162,12 @@ export class Player {
     const nodes = [];
 
     // 4 golpes de metronomo de referencia antes de empezar el ejercicio
-    // (el count-in usa siempre un clic, para marcar el tempo con claridad)
+    // (el count-in usa siempre un clic, para marcar el tempo con claridad,
+    // y ademas la voz si el modo elegido la incluye)
     for (let b = 0; b < COUNT_IN_BEATS; b++) {
-      scheduleClick(countInStart + b * secPerBeat, b === 0, nodes);
+      const t = countInStart + b * secPerBeat;
+      scheduleClick(t, b === 0, nodes);
+      if (doVoice) scheduleCountVoice(t, b + 1, countBuffers, nodes);
     }
     const startTime = countInStart + COUNT_IN_BEATS * secPerBeat;
 
@@ -158,9 +177,18 @@ export class Player {
       }
     });
 
-    if (doClick) {
-      clickBeats.forEach(cb => scheduleClick(startTime + cb.beat * secPerBeat, cb.accent, nodes));
-    }
+    // Clic y voz de cada pulso se programan juntos, en el mismo reloj de
+    // Web Audio, para que sean exactamente el mismo evento sonoro (la voz
+    // reinicia en "one" en cada compas nuevo).
+    let pulse = 0;
+    clickBeats.forEach(cb => {
+      const t = startTime + cb.beat * secPerBeat;
+      if (doClick) scheduleClick(t, cb.accent, nodes);
+      if (doVoice) {
+        pulse = cb.accent ? 1 : pulse + 1;
+        scheduleCountVoice(t, pulse, countBuffers, nodes);
+      }
+    });
 
     this.nodes = nodes;
     this.playing = true;
@@ -172,25 +200,6 @@ export class Player {
       }
       const doneId = setTimeout(() => { if (this.playing) onCountIn(-1); }, (leadIn + COUNT_IN_BEATS * secPerBeat) * 1000);
       this.timeouts.push(doneId);
-    }
-
-    // Voz contando cada pulso: "one, two, three, four..." durante el
-    // count-in, y reiniciando en "one" en cada compas durante el ejercicio.
-    // Solo suena si el modo de metronomo elegido incluye voz.
-    if (doVoice) {
-      pickVoice();
-      for (let b = 0; b < COUNT_IN_BEATS; b++) {
-        const id = setTimeout(() => { if (this.playing) speakCount(b + 1); }, (leadIn + b * secPerBeat) * 1000);
-        this.timeouts.push(id);
-      }
-      let pulse = 0;
-      clickBeats.forEach(cb => {
-        pulse = cb.accent ? 1 : pulse + 1;
-        const currentPulse = pulse;
-        const delay = (leadIn + COUNT_IN_BEATS * secPerBeat + cb.beat * secPerBeat) * 1000;
-        const id = setTimeout(() => { if (this.playing) speakCount(currentPulse); }, delay);
-        this.timeouts.push(id);
-      });
     }
 
     const endTime = startTime + totalBeats * secPerBeat;
